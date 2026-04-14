@@ -1,0 +1,108 @@
+name: Deploy
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CD — Sprint 6 (US-9.1)
+#
+# This workflow is intentionally disabled until the production infrastructure
+# is provisioned (VPS + Forge/Ploi or raw SSH access).
+#
+# Required GitHub Secrets (configure before enabling):
+#   SSH_HOST          — Production server IP or hostname
+#   SSH_USER          — SSH user (e.g. forge, deploy)
+#   SSH_PRIVATE_KEY   — Private key for SSH authentication
+#   SSH_PORT          — SSH port (default: 22)
+#   DEPLOY_PATH       — Absolute path to the app on the server
+#                       e.g. /home/forge/watchboard.com
+#   SLACK_WEBHOOK_URL — (optional) Slack Incoming Webhook for deploy notifications
+#
+# To enable: remove the `if: false` condition from the `deploy` job.
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  push:
+    branches: [master]
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false   # never cancel an in-flight deploy
+
+jobs:
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    if: false   # ← remove this line in Sprint 6 when infra is ready
+    environment:
+      name: production
+      url: https://watchboard.app   # update with the real URL
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Confirm CI passed on this commit before deploying
+      - name: Wait for CI to succeed
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.sha }}
+          check-name: 'Tests (PHP 8.3)'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 10
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          port: ${{ secrets.SSH_PORT }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd ${{ secrets.DEPLOY_PATH }}
+
+            echo "▶ Pulling latest code..."
+            git pull origin master
+
+            echo "▶ Installing PHP dependencies..."
+            composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
+
+            echo "▶ Installing Node dependencies and building assets..."
+            npm ci && npm run build
+
+            echo "▶ Running migrations..."
+            php artisan migrate --force
+
+            echo "▶ Clearing and warming caches..."
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+            php artisan event:cache
+
+            echo "▶ Restarting Horizon..."
+            php artisan horizon:terminate
+
+            echo "✅ Deploy completed."
+
+      # Optional Slack notification
+      - name: Notify Slack on success
+        if: success() && vars.SLACK_NOTIFY == 'true'
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "text": "✅ *WatchBoard* deployed to production successfully.\nCommit: `${{ github.sha }}` by @${{ github.actor }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+      - name: Notify Slack on failure
+        if: failure() && vars.SLACK_NOTIFY == 'true'
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "text": "🔴 *WatchBoard* deploy to production *FAILED*.\nCommit: `${{ github.sha }}` by @${{ github.actor }}\nSee: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
