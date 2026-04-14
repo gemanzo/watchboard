@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Monitor extends Model
 {
@@ -37,5 +38,10 @@ class Monitor extends Model
     public function checkResults(): HasMany
     {
         return $this->hasMany(CheckResult::class);
+    }
+
+    public function latestCheckResult(): HasOne
+    {
+        return $this->hasOne(CheckResult::class)->latestOfMany('checked_at');
     }
 }
