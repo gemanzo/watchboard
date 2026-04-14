@@ -20,6 +20,7 @@ class Monitor extends Model
         'interval_minutes',
         'current_status',
         'is_paused',
+        'last_checked_at',
     ];
 
     protected function casts(): array
