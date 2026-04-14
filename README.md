@@ -23,7 +23,7 @@ Monitor your websites and APIs, get instant email alerts when something goes dow
 
 ## Tech Stack
 
-- **Backend**: PHP 8.3 / Laravel 11
+- **Backend**: PHP 8.4 / Laravel 13
 - **Frontend**: Vue 3 / Inertia.js / Tailwind CSS
 - **Database**: PostgreSQL
 - **Queue**: Redis + Laravel Horizon
@@ -51,7 +51,7 @@ Monitor your websites and APIs, get instant email alerts when something goes dow
 ### Installation
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/watchboard.git
+git clone https://github.com/gemanzo/watchboard.git
 cd watchboard
 composer install
 npm install
