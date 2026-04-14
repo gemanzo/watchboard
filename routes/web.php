@@ -19,6 +19,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [MonitorController::class, 'index'])->name('dashboard');
     Route::get('/monitors/create', [MonitorController::class, 'create'])->name('monitors.create');
     Route::post('/monitors', [MonitorController::class, 'store'])->name('monitors.store');
+    Route::get('/monitors/{monitor}', [MonitorController::class, 'show'])->name('monitors.show');
 });
 
 Route::middleware('auth')->group(function () {
