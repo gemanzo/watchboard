@@ -1,6 +1,12 @@
 # 🔍 WatchBoard
 
-**Open-source uptime monitoring SaaS built with Laravel.**
+<p align="center">
+<a href="https://github.com/gemanzo/watchboard/actions/workflows/ci.yml"><img src="https://github.com/gemanzo/watchboard/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+</p>
 
 Monitor your websites and APIs, get instant email alerts when something goes down, and share a beautiful public status page with your users.
 
