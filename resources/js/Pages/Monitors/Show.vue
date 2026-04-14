@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, Link } from '@inertiajs/vue3';
+import DangerButton from '@/Components/DangerButton.vue';
+import Modal from '@/Components/Modal.vue';
+import SecondaryButton from '@/Components/SecondaryButton.vue';
+import { Head, Link, useForm } from '@inertiajs/vue3';
+import { ref } from 'vue';
 
 interface Monitor {
     id: number;
@@ -12,9 +16,18 @@ interface Monitor {
     is_paused: boolean;
 }
 
-defineProps<{
+const props = defineProps<{
     monitor: Monitor;
 }>();
+
+const showDeleteModal = ref(false);
+const deleteForm = useForm({});
+
+const confirmDelete = () => {
+    deleteForm.delete(route('monitors.destroy', props.monitor.id), {
+        onSuccess: () => { showDeleteModal.value = false; },
+    });
+};
 </script>
 
 <template>
@@ -22,17 +35,32 @@ defineProps<{
 
     <AuthenticatedLayout>
         <template #header>
-            <div class="flex items-center gap-3">
-                <Link
-                    :href="route('dashboard')"
-                    class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                >
-                    ← Dashboard
-                </Link>
-                <span class="text-gray-300 dark:text-gray-600">/</span>
-                <h2 class="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
-                    {{ monitor.name ?? monitor.url }}
-                </h2>
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <Link
+                        :href="route('dashboard')"
+                        class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    >
+                        ← Dashboard
+                    </Link>
+                    <span class="text-gray-300 dark:text-gray-600">/</span>
+                    <h2 class="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
+                        {{ monitor.name ?? monitor.url }}
+                    </h2>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex items-center gap-3">
+                    <Link
+                        :href="route('monitors.edit', monitor.id)"
+                        class="rounded-md border border-gray-300 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-widest text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                    >
+                        Modifica
+                    </Link>
+                    <DangerButton type="button" @click="showDeleteModal = true">
+                        Elimina
+                    </DangerButton>
+                </div>
             </div>
         </template>
 
@@ -60,7 +88,6 @@ defineProps<{
                             Grafici e storico check disponibili nei prossimi sprint.
                         </p>
 
-                        <!-- Monitor summary -->
                         <dl class="mt-8 grid grid-cols-2 gap-x-8 gap-y-4 text-sm sm:grid-cols-4">
                             <div class="text-left">
                                 <dt class="text-xs font-medium uppercase tracking-wide text-gray-400">URL</dt>
@@ -85,5 +112,30 @@ defineProps<{
                 </div>
             </div>
         </div>
+
+        <!-- Delete confirmation modal -->
+        <Modal :show="showDeleteModal" max-width="md" @close="showDeleteModal = false">
+            <div class="p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    Eliminare il monitor?
+                </h3>
+                <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    Questa azione è irreversibile. Il monitor e tutti i check result associati
+                    verranno eliminati definitivamente.
+                </p>
+                <div class="mt-6 flex justify-end gap-3">
+                    <SecondaryButton @click="showDeleteModal = false">
+                        Annulla
+                    </SecondaryButton>
+                    <DangerButton
+                        :class="{ 'opacity-25': deleteForm.processing }"
+                        :disabled="deleteForm.processing"
+                        @click="confirmDelete"
+                    >
+                        Sì, elimina
+                    </DangerButton>
+                </div>
+            </div>
+        </Modal>
     </AuthenticatedLayout>
 </template>

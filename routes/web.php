@@ -20,6 +20,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/monitors/create', [MonitorController::class, 'create'])->name('monitors.create');
     Route::post('/monitors', [MonitorController::class, 'store'])->name('monitors.store');
     Route::get('/monitors/{monitor}', [MonitorController::class, 'show'])->name('monitors.show');
+    Route::get('/monitors/{monitor}/edit', [MonitorController::class, 'edit'])->name('monitors.edit');
+    Route::put('/monitors/{monitor}', [MonitorController::class, 'update'])->name('monitors.update');
+    Route::delete('/monitors/{monitor}', [MonitorController::class, 'destroy'])->name('monitors.destroy');
 });
 
 Route::middleware('auth')->group(function () {
