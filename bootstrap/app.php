@@ -16,7 +16,9 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
 
-        //
+        $middleware->alias([
+            'check.plan.limits' => \App\Http\Middleware\CheckPlanLimits::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

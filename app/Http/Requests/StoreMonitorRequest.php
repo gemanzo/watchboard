@@ -4,7 +4,6 @@ namespace App\Http\Requests;
 
 use App\Models\Monitor;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class StoreMonitorRequest extends FormRequest
 {
@@ -15,11 +14,13 @@ class StoreMonitorRequest extends FormRequest
 
     public function rules(): array
     {
+        $minimumInterval = (int) $this->user()->planConfig()['min_interval_minutes'];
+
         return [
             'name'             => ['nullable', 'string', 'max:255'],
             'url'              => ['required', 'url', 'max:2048'],
             'method'           => ['required', 'in:GET,HEAD'],
-            'interval_minutes' => ['required', Rule::in($this->user()->planConfig()['intervals'])],
+            'interval_minutes' => ['required', 'integer', 'min:'.$minimumInterval],
         ];
     }
 }

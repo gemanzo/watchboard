@@ -9,7 +9,13 @@ class MonitorPolicy
 {
     public function create(User $user): bool
     {
-        return $user->monitors()->count() < $user->planConfig()['max_monitors'];
+        $maxMonitors = $user->planConfig()['max_monitors'];
+
+        if ($maxMonitors === null) {
+            return true;
+        }
+
+        return $user->monitors()->count() < $maxMonitors;
     }
 
     public function view(User $user, Monitor $monitor): bool
