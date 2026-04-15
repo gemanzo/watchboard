@@ -38,9 +38,23 @@ interface MetricPoint {
 
 type Range = '24h' | '7d' | '30d';
 
+interface Uptime {
+    '24h': number | null;
+    '7d': number | null;
+    '30d': number | null;
+}
+
 const props = defineProps<{
     monitor: Monitor;
+    uptime: Uptime;
 }>();
+
+function uptimeBadgeClass(value: number | null): string {
+    if (value === null) return 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400';
+    if (value >= 99) return 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300';
+    if (value >= 95) return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300';
+    return 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300';
+}
 
 const showDeleteModal = ref(false);
 const deleteForm = useForm({});
@@ -204,6 +218,22 @@ watch(metrics, (pts) => {
                             </dd>
                         </div>
                     </dl>
+                </div>
+
+                <!-- Uptime -->
+                <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg dark:bg-gray-800">
+                    <div class="grid grid-cols-3 divide-x divide-gray-100 dark:divide-gray-700">
+                        <div v-for="(label, key) in { '24h': '24 ore', '7d': '7 giorni', '30d': '30 giorni' }" :key="key" class="px-6 py-5 text-center">
+                            <dt class="text-xs font-medium uppercase tracking-wide text-gray-400">Uptime {{ label }}</dt>
+                            <dd class="mt-2">
+                                <span
+                                    :class="['inline-flex rounded-full px-3 py-1 text-sm font-semibold', uptimeBadgeClass(uptime[key as keyof Uptime])]"
+                                >
+                                    {{ uptime[key as keyof Uptime] !== null ? `${uptime[key as keyof Uptime]}%` : '—' }}
+                                </span>
+                            </dd>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Response time chart -->
