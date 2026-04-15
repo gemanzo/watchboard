@@ -24,7 +24,7 @@ test('authenticated user can view the dashboard', function () {
     $this->actingAs($user)
         ->get(route('dashboard'))
         ->assertOk()
-        ->assertInertia(fn ($page) => $page->component('Dashboard'));
+        ->assertInertia(fn($page) => $page->component('Dashboard'));
 });
 
 test('guest is redirected from dashboard', function () {
@@ -37,7 +37,7 @@ test('user can view the create monitor form', function () {
     $this->actingAs(freeUser())
         ->get(route('monitors.create'))
         ->assertOk()
-        ->assertInertia(fn ($page) => $page->component('Monitors/Create'));
+        ->assertInertia(fn($page) => $page->component('Monitors/Create'));
 });
 
 test('user can create a monitor with valid data', function () {
@@ -77,8 +77,7 @@ test('store fails with invalid method', function () {
         ->assertSessionHasErrors('method');
 });
 
-test('store fails with interval not available on plan', function () {
-    // free plan only allows interval 5
+test('store fails with interval below free plan minimum', function () {
     $this->actingAs(freeUser())
         ->post(route('monitors.store'), [
             'url'              => 'https://example.com',
@@ -90,9 +89,9 @@ test('store fails with interval not available on plan', function () {
 
 // ─── Plan limit ───────────────────────────────────────────────────────────────
 
-test('free user cannot create a 4th monitor (plan limit)', function () {
+test('free user cannot create a 6th monitor (plan limit)', function () {
     $user = freeUser();
-    Monitor::factory()->count(3)->forUser($user)->withInterval(5)->create();
+    Monitor::factory()->count(5)->forUser($user)->withInterval(5)->create();
 
     $this->actingAs($user)
         ->post(route('monitors.store'), [
@@ -103,9 +102,9 @@ test('free user cannot create a 4th monitor (plan limit)', function () {
         ->assertForbidden();
 });
 
-test('pro user can create up to 10 monitors', function () {
+test('pro user can create monitors without limit', function () {
     $user = proUser();
-    Monitor::factory()->count(9)->forUser($user)->withInterval(5)->create();
+    Monitor::factory()->count(25)->forUser($user)->withInterval(5)->create();
 
     $this->actingAs($user)
         ->post(route('monitors.store'), [
@@ -115,7 +114,7 @@ test('pro user can create up to 10 monitors', function () {
         ])
         ->assertRedirect(route('dashboard'));
 
-    expect($user->monitors()->count())->toBe(10);
+    expect($user->monitors()->count())->toBe(26);
 });
 
 // ─── Edit ─────────────────────────────────────────────────────────────────────
@@ -127,10 +126,11 @@ test('owner can view the edit form pre-populated', function () {
     $this->actingAs($user)
         ->get(route('monitors.edit', $monitor))
         ->assertOk()
-        ->assertInertia(fn ($page) => $page
-            ->component('Monitors/Edit')
-            ->has('monitor')
-            ->where('monitor.id', $monitor->id)
+        ->assertInertia(
+            fn($page) => $page
+                ->component('Monitors/Edit')
+                ->has('monitor')
+                ->where('monitor.id', $monitor->id)
         );
 });
 
