@@ -34,6 +34,7 @@ class MonitorController extends Controller
                 'last_status_code'      => $monitor->latestCheckResult?->status_code,
                 'last_response_time_ms' => $monitor->latestCheckResult?->response_time_ms,
                 'last_checked_at_human' => $monitor->latestCheckResult?->checked_at?->diffForHumans(),
+                'uptime_24h'            => $monitor->uptimePercentage('24h'),
             ]);
 
         return Inertia::render('Dashboard', [
@@ -72,6 +73,7 @@ class MonitorController extends Controller
                 'current_status'   => $monitor->current_status,
                 'is_paused'        => $monitor->is_paused,
             ],
+            'uptime' => $monitor->uptimeAll(),
         ]);
     }
 

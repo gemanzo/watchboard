@@ -14,6 +14,7 @@ interface Monitor {
     last_status_code: number | null;
     last_response_time_ms: number | null;
     last_checked_at_human: string | null;
+    uptime_24h: number | null;
 }
 
 defineProps<{
@@ -39,6 +40,13 @@ const statusConfig: Record<string, { label: string; dot: string; badge: string }
         badge: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
     },
 };
+
+function uptimeBadgeClass(uptime: number | null): string {
+    if (uptime === null) return 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400';
+    if (uptime >= 99) return 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300';
+    if (uptime >= 95) return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300';
+    return 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300';
+}
 
 function getStatus(monitor: Monitor) {
     if (monitor.is_paused) {
@@ -130,6 +138,7 @@ function getStatus(monitor: Monitor) {
                                 <tr>
                                     <th class="px-6 py-3">Nome / URL</th>
                                     <th class="px-6 py-3">Stato</th>
+                                    <th class="px-6 py-3">Uptime 24h</th>
                                     <th class="px-6 py-3">Status code</th>
                                     <th class="px-6 py-3">Resp. time</th>
                                     <th class="px-6 py-3">Ultimo check</th>
@@ -158,6 +167,15 @@ function getStatus(monitor: Monitor) {
                                         <span :class="['inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium', getStatus(monitor).badge]">
                                             <span :class="['h-1.5 w-1.5 rounded-full', getStatus(monitor).dot]" />
                                             {{ getStatus(monitor).label }}
+                                        </span>
+                                    </td>
+
+                                    <!-- Uptime 24h -->
+                                    <td class="px-6 py-4">
+                                        <span
+                                            :class="['inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium', uptimeBadgeClass(monitor.uptime_24h)]"
+                                        >
+                                            {{ monitor.uptime_24h !== null ? `${monitor.uptime_24h}%` : '—' }}
                                         </span>
                                     </td>
 
