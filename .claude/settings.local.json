@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(php artisan:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(XDEBUG_MODE=off php artisan test)",
+      "Bash(php -r \"echo php_ini_loaded_file\\(\\) . PHP_EOL;\")",
+      "Bash(php -r \"echo ini_get\\('xdebug.mode'\\) . PHP_EOL;\")",
+      "Bash(php --ini)"
     ]
   }
 }
