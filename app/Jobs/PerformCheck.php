@@ -2,6 +2,8 @@
 
 namespace App\Jobs;
 
+use App\Events\MonitorStatusChanged;
+use App\Models\CheckResult;
 use App\Models\Monitor;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -33,6 +35,7 @@ class PerformCheck implements ShouldQueue, ShouldBeUnique
 
     public function handle(): void
     {
+        $oldStatus  = $this->monitor->current_status;
         $startedAt  = now();
         $startNs    = hrtime(true);
         $statusCode = null;
@@ -57,7 +60,8 @@ class PerformCheck implements ShouldQueue, ShouldBeUnique
             $isSuccessful   = false;
         }
 
-        $this->monitor->checkResults()->create([
+        $newStatus   = $isSuccessful ? 'up' : 'down';
+        $checkResult = $this->monitor->checkResults()->create([
             'status_code'      => $statusCode,
             'response_time_ms' => $responseTimeMs,
             'is_successful'    => $isSuccessful,
@@ -66,7 +70,62 @@ class PerformCheck implements ShouldQueue, ShouldBeUnique
 
         $this->monitor->update([
             'last_checked_at' => $startedAt,
-            'current_status'  => $isSuccessful ? 'up' : 'down',
+            'current_status'  => $newStatus,
         ]);
+
+        $this->dispatchStatusChangedIfNeeded($oldStatus, $newStatus, $checkResult);
+    }
+
+    private function dispatchStatusChangedIfNeeded(
+        string      $oldStatus,
+        string      $newStatus,
+        CheckResult $checkResult,
+    ): void {
+        // No change in effective status
+        if ($oldStatus === $newStatus) {
+            return;
+        }
+
+        // First check with the service already up — not a meaningful transition
+        if ($oldStatus === 'unknown' && $newStatus === 'up') {
+            return;
+        }
+
+        $downtimeSeconds = null;
+
+        if ($oldStatus === 'down' && $newStatus === 'up') {
+            $downtimeSeconds = $this->calculateDowntimeSeconds($checkResult);
+        }
+
+        MonitorStatusChanged::dispatch(
+            $this->monitor,
+            $oldStatus,
+            $newStatus,
+            $checkResult,
+            $downtimeSeconds,
+        );
+    }
+
+    /**
+     * Calculate how long the monitor was down before this recovery.
+     *
+     * We look for the most recent successful check before this one; the time
+     * elapsed since that check is a conservative approximation of the downtime.
+     * Returns null when no prior successful check exists (downtime started
+     * before the first recorded result).
+     */
+    private function calculateDowntimeSeconds(CheckResult $checkResult): ?int
+    {
+        $lastUp = $this->monitor->checkResults()
+            ->where('is_successful', true)
+            ->where('id', '<>', $checkResult->id)
+            ->latest('checked_at')
+            ->first();
+
+        if ($lastUp === null) {
+            return null;
+        }
+
+        return (int) abs($checkResult->checked_at->diffInSeconds($lastUp->checked_at));
     }
 }

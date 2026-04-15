@@ -5,7 +5,6 @@ use App\Models\CheckResult;
 use App\Models\Monitor;
 use App\Models\User;
 use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
@@ -58,7 +57,7 @@ test('uses the configured http method', function () {
     $monitor = monitorFor('HEAD');
     (new PerformCheck($monitor))->handle();
 
-    Http::assertSent(fn ($request) => $request->method() === 'HEAD');
+    Http::assertSent(fn($request) => $request->method() === 'HEAD');
 });
 
 // ─── 4xx / 5xx responses ──────────────────────────────────────────────────────
@@ -89,7 +88,7 @@ test('saves status code on 404 response', function () {
 // ─── Connection failure ───────────────────────────────────────────────────────
 
 test('saves null status_code and marks monitor down on connection error', function () {
-    Http::fake(['*' => fn () => throw new ConnectionException('Connection refused')]);
+    Http::fake(['*' => fn() => throw new ConnectionException('Connection refused')]);
 
     $monitor = monitorFor();
     (new PerformCheck($monitor))->handle();
@@ -106,7 +105,7 @@ test('saves null status_code and marks monitor down on connection error', functi
 
 test('saves null status_code and marks monitor down on timeout', function () {
     // ConnectionException is thrown for timeouts by Laravel's Http client
-    Http::fake(['*' => fn () => throw new ConnectionException('cURL error 28: Operation timed out')]);
+    Http::fake(['*' => fn() => throw new ConnectionException('cURL error 28: Operation timed out')]);
 
     $monitor = monitorFor();
     (new PerformCheck($monitor))->handle();
@@ -144,7 +143,7 @@ test('job targets the checks queue', function () {
 // ─── last_checked_at set correctly ───────────────────────────────────────────
 
 test('always updates last_checked_at even on failure', function () {
-    Http::fake(['*' => fn () => throw new ConnectionException('refused')]);
+    Http::fake(['*' => fn() => throw new ConnectionException('refused')]);
 
     $monitor = monitorFor();
     (new PerformCheck($monitor))->handle();
