@@ -9,7 +9,10 @@
       "Bash(php --ini)",
       "Bash(XDEBUG_MODE=off php artisan test --no-coverage)",
       "Bash(./vendor/bin/pest --no-coverage)",
-      "Bash(./vendor/bin/pest tests/Feature/SendDownNotificationTest.php --no-coverage)"
+      "Bash(./vendor/bin/pest tests/Feature/SendDownNotificationTest.php --no-coverage)",
+      "Bash(grep -E \"\\\\.\\(jsx|tsx|js\\)$\")",
+      "Bash(npm install:*)",
+      "Bash(./vendor/bin/pest tests/Feature/MonitorMetricsTest.php --no-coverage)"
     ]
   }
 }

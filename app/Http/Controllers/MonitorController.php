@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreMonitorRequest;
 use App\Http\Requests\UpdateMonitorRequest;
 use App\Models\Monitor;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -107,5 +109,44 @@ class MonitorController extends Controller
 
         return redirect()->route('dashboard')
             ->with('message', 'Monitor eliminato con successo.');
+    }
+
+    public function metrics(Request $request, Monitor $monitor): JsonResponse
+    {
+        Gate::authorize('view', $monitor);
+
+        $validated = $request->validate([
+            'range' => ['sometimes', Rule::in(['24h', '7d', '30d'])],
+        ]);
+
+        $range = $validated['range'] ?? '24h';
+
+        $since = match ($range) {
+            '24h' => now()->subHours(24),
+            '7d'  => now()->subDays(7),
+            '30d' => now()->subDays(30),
+        };
+
+        $results = $monitor->checkResults()
+            ->where('checked_at', '>=', $since)
+            ->orderBy('checked_at')
+            ->get(['response_time_ms', 'checked_at']);
+
+        $data = $results
+            ->groupBy(function ($r) {
+                $bucket = intdiv($r->checked_at->minute, 15) * 15;
+
+                return $r->checked_at->copy()
+                    ->setTime($r->checked_at->hour, $bucket, 0)
+                    ->toIso8601String();
+            })
+            ->map(fn ($group, $key) => [
+                'timestamp'            => $key,
+                'avg_response_time_ms' => (int) round($group->avg('response_time_ms')),
+                'check_count'          => $group->count(),
+            ])
+            ->values();
+
+        return response()->json(['data' => $data]);
     }
 }

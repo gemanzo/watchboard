@@ -22,6 +22,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('check.plan.limits:monitors')
         ->name('monitors.store');
     Route::get('/monitors/{monitor}', [MonitorController::class, 'show'])->name('monitors.show');
+    Route::get('/monitors/{monitor}/metrics', [MonitorController::class, 'metrics'])->name('monitors.metrics');
     Route::get('/monitors/{monitor}/edit', [MonitorController::class, 'edit'])->name('monitors.edit');
     Route::put('/monitors/{monitor}', [MonitorController::class, 'update'])->name('monitors.update');
     Route::delete('/monitors/{monitor}', [MonitorController::class, 'destroy'])->name('monitors.destroy');
