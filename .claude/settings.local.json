@@ -8,7 +8,8 @@
       "Bash(php -r \"echo ini_get\\('xdebug.mode'\\) . PHP_EOL;\")",
       "Bash(php --ini)",
       "Bash(XDEBUG_MODE=off php artisan test --no-coverage)",
-      "Bash(./vendor/bin/pest --no-coverage)"
+      "Bash(./vendor/bin/pest --no-coverage)",
+      "Bash(./vendor/bin/pest tests/Feature/SendDownNotificationTest.php --no-coverage)"
     ]
   }
 }

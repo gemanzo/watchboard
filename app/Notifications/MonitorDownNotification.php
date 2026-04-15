@@ -4,10 +4,11 @@ namespace App\Notifications;
 
 use App\Models\CheckResult;
 use App\Models\Monitor;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class MonitorDownNotification extends Notification
+class MonitorDownNotification extends Notification implements ShouldQueue
 {
     public function __construct(
         public readonly Monitor $monitor,
@@ -16,7 +17,12 @@ class MonitorDownNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['mail']; // estendibile: ['mail', 'slack', 'vonage', ...]
+    }
+
+    public function viaQueues(): array
+    {
+        return ['mail' => 'notifications'];
     }
 
     public function toMail(object $notifiable): MailMessage
