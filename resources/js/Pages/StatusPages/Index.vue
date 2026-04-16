@@ -144,6 +144,12 @@ function toggleActive(sp: StatusPage) {
                                     {{ sp.is_active ? 'Disattiva' : 'Attiva' }}
                                 </button>
                                 <Link
+                                    :href="route('status-pages.configure', sp.id)"
+                                    class="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                                >
+                                    Configura
+                                </Link>
+                                <Link
                                     :href="route('status-pages.edit', sp.id)"
                                     class="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                                 >

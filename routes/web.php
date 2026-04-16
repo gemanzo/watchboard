@@ -37,6 +37,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/status-pages/{status_page}/edit', [StatusPageController::class, 'edit'])->name('status-pages.edit');
     Route::put('/status-pages/{status_page}', [StatusPageController::class, 'update'])->name('status-pages.update');
     Route::patch('/status-pages/{status_page}/toggle', [StatusPageController::class, 'toggle'])->name('status-pages.toggle');
+    Route::get('/status-pages/{status_page}/configure', [StatusPageController::class, 'configure'])->name('status-pages.configure');
+    Route::put('/status-pages/{status_page}/monitors', [StatusPageController::class, 'updateMonitors'])->name('status-pages.update-monitors');
     Route::delete('/status-pages/{status_page}', [StatusPageController::class, 'destroy'])->name('status-pages.destroy');
 });
 
