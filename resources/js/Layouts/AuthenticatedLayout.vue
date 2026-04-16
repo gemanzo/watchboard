@@ -39,6 +39,12 @@ const showingNavigationDropdown = ref(false);
                                 >
                                     Dashboard
                                 </NavLink>
+                                <NavLink
+                                    :href="route('status-pages.index')"
+                                    :active="route().current('status-pages.*')"
+                                >
+                                    Status Pages
+                                </NavLink>
                             </div>
                         </div>
 
@@ -145,6 +151,12 @@ const showingNavigationDropdown = ref(false);
                             :active="route().current('dashboard')"
                         >
                             Dashboard
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('status-pages.index')"
+                            :active="route().current('status-pages.*')"
+                        >
+                            Status Pages
                         </ResponsiveNavLink>
                     </div>
 
