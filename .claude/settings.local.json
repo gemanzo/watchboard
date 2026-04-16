@@ -13,7 +13,8 @@
       "Bash(grep -E \"\\\\.\\(jsx|tsx|js\\)$\")",
       "Bash(npm install:*)",
       "Bash(./vendor/bin/pest tests/Feature/MonitorMetricsTest.php --no-coverage)",
-      "Bash(./vendor/bin/pest tests/Feature/UptimeCalculationTest.php --no-coverage)"
+      "Bash(./vendor/bin/pest tests/Feature/UptimeCalculationTest.php --no-coverage)",
+      "Bash(./vendor/bin/pest tests/Feature/StatusPageCrudTest.php --no-coverage)"
     ]
   }
 }

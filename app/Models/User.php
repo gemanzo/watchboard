@@ -36,6 +36,11 @@ class User extends Authenticatable
         return $this->hasMany(Monitor::class);
     }
 
+    public function statusPages(): HasMany
+    {
+        return $this->hasMany(StatusPage::class);
+    }
+
     public function planConfig(): array
     {
         return config("plans.{$this->plan}");

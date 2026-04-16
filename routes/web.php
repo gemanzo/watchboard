@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\MonitorController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\StatusPageController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -26,6 +27,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/monitors/{monitor}/edit', [MonitorController::class, 'edit'])->name('monitors.edit');
     Route::put('/monitors/{monitor}', [MonitorController::class, 'update'])->name('monitors.update');
     Route::delete('/monitors/{monitor}', [MonitorController::class, 'destroy'])->name('monitors.destroy');
+
+    // Status Pages
+    Route::get('/status-pages', [StatusPageController::class, 'index'])->name('status-pages.index');
+    Route::get('/status-pages/create', [StatusPageController::class, 'create'])->name('status-pages.create');
+    Route::post('/status-pages', [StatusPageController::class, 'store'])
+        ->middleware('check.plan.limits:status-pages')
+        ->name('status-pages.store');
+    Route::get('/status-pages/{status_page}/edit', [StatusPageController::class, 'edit'])->name('status-pages.edit');
+    Route::put('/status-pages/{status_page}', [StatusPageController::class, 'update'])->name('status-pages.update');
+    Route::patch('/status-pages/{status_page}/toggle', [StatusPageController::class, 'toggle'])->name('status-pages.toggle');
+    Route::delete('/status-pages/{status_page}', [StatusPageController::class, 'destroy'])->name('status-pages.destroy');
 });
 
 Route::middleware('auth')->group(function () {
@@ -33,5 +45,8 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
+// Public status page
+Route::get('/status/{status_page:slug}', [StatusPageController::class, 'publicShow'])->name('status-pages.public');
 
 require __DIR__.'/auth.php';
