@@ -183,6 +183,8 @@ test('slug uniqueness allows keeping the same slug on update', function () {
 test('owner can toggle active state', function () {
     $user = User::factory()->create();
     $sp   = StatusPage::factory()->create(['user_id' => $user->id, 'is_active' => true]);
+    $mon  = Monitor::factory()->create(['user_id' => $user->id]);
+    $sp->monitors()->attach($mon->id, ['sort_order' => 0]);
 
     $this->actingAs($user)
         ->patch(route('status-pages.toggle', $sp))
@@ -229,12 +231,13 @@ test('active status page is publicly accessible by slug', function () {
         'slug'      => 'acme-status',
         'is_active' => true,
     ]);
-    Monitor::factory()->create([
+    $mon = Monitor::factory()->create([
         'user_id'        => $user->id,
         'name'           => 'API',
         'current_status' => 'up',
         'is_paused'      => false,
     ]);
+    $sp->monitors()->attach($mon->id, ['sort_order' => 0]);
 
     $this->get('/status/acme-status')
         ->assertOk()
