@@ -177,6 +177,7 @@ class StatusPageController extends Controller
                 'name'           => $m->pivot->display_name ?? $m->name ?? $m->url,
                 'current_status' => $m->current_status,
                 'response_time'  => $m->latestCheckResult?->response_time_ms,
+                'daily_uptime'   => $m->dailyUptime(90),
             ]);
 
         return Inertia::render('StatusPages/PublicShow', [

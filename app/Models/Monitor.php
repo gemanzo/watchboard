@@ -80,4 +80,40 @@ class Monitor extends Model
             '30d' => $this->uptimePercentage('30d'),
         ];
     }
+
+    /**
+     * Return daily uptime percentages for the last N days.
+     *
+     * @return array<string, float|null> date (Y-m-d) => percentage
+     */
+    public function dailyUptime(int $days = 90): array
+    {
+        $cacheKey = "monitor:{$this->id}:daily_uptime:{$days}";
+
+        return Cache::remember($cacheKey, 300, function () use ($days) {
+            $since = now()->subDays($days)->startOfDay();
+
+            $rows = $this->checkResults()
+                ->where('checked_at', '>=', $since)
+                ->selectRaw('DATE(checked_at) as day')
+                ->selectRaw('COUNT(*) as total')
+                ->selectRaw('SUM(CASE WHEN is_successful THEN 1 ELSE 0 END) as successful')
+                ->groupByRaw('DATE(checked_at)')
+                ->get()
+                ->keyBy('day');
+
+            $result = [];
+            for ($i = $days - 1; $i >= 0; $i--) {
+                $date = now()->subDays($i)->format('Y-m-d');
+                if ($rows->has($date)) {
+                    $row = $rows[$date];
+                    $result[$date] = round(($row->successful / $row->total) * 100, 2);
+                } else {
+                    $result[$date] = null;
+                }
+            }
+
+            return $result;
+        });
+    }
 }
