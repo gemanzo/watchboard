@@ -18,7 +18,8 @@
       "Bash(./vendor/bin/pest tests/Feature/StatusPageMonitorsTest.php)",
       "Bash(./vendor/bin/pest)",
       "Bash(./vendor/bin/pest tests/Feature/PublicStatusPageTest.php)",
-      "Bash(php artisan *)"
+      "Bash(php artisan *)",
+      "Bash(composer show *)"
     ]
   }
 }

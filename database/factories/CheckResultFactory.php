@@ -19,7 +19,7 @@ class CheckResultFactory extends Factory
     public function definition(): array
     {
         return [
-            'monitor_id'     => Monitor::first()->id ?? Monitor::factory()->create()->id,
+            'monitor_id'     => Monitor::factory(),
             'status_code' => fake()->randomElement([
                 // 1xx Informational
                 100,
