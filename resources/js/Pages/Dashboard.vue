@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, Link, usePage } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
 interface Monitor {
@@ -57,6 +57,20 @@ function getStatus(monitor: Monitor) {
         };
     }
     return statusConfig[monitor.current_status] ?? statusConfig.unknown;
+}
+
+const pauseForms = new Map<number, ReturnType<typeof useForm>>();
+
+function getPauseForm(monitorId: number) {
+    if (!pauseForms.has(monitorId)) {
+        pauseForms.set(monitorId, useForm({}));
+    }
+    return pauseForms.get(monitorId)!;
+}
+
+function togglePause(event: Event, monitor: Monitor) {
+    event.stopPropagation();
+    getPauseForm(monitor.id).patch(route('monitors.toggle-pause', monitor.id));
 }
 </script>
 
@@ -143,6 +157,7 @@ function getStatus(monitor: Monitor) {
                                     <th class="px-6 py-3">Resp. time</th>
                                     <th class="px-6 py-3">Ultimo check</th>
                                     <th class="px-6 py-3">Intervallo</th>
+                                    <th class="px-6 py-3"></th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
@@ -206,6 +221,25 @@ function getStatus(monitor: Monitor) {
                                     <!-- Intervallo -->
                                     <td class="px-6 py-4 text-gray-500 dark:text-gray-400">
                                         {{ monitor.interval_minutes === 1 ? '1 min' : `${monitor.interval_minutes} min` }}
+                                    </td>
+
+                                    <!-- Azioni -->
+                                    <td class="px-4 py-4 text-right" @click.stop>
+                                        <button
+                                            :title="monitor.is_paused ? 'Riprendi monitoraggio' : 'Metti in pausa'"
+                                            :disabled="getPauseForm(monitor.id).processing"
+                                            class="inline-flex items-center justify-center rounded-md p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                                            @click="togglePause($event, monitor)"
+                                        >
+                                            <!-- Play icon (resume) -->
+                                            <svg v-if="monitor.is_paused" class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M6.3 2.84A1.5 1.5 0 0 0 4 4.11v11.78a1.5 1.5 0 0 0 2.3 1.27l9.344-5.891a1.5 1.5 0 0 0 0-2.538L6.3 2.84Z" />
+                                            </svg>
+                                            <!-- Pause icon -->
+                                            <svg v-else class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M5.75 3a.75.75 0 0 0-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 0 0 .75-.75V3.75A.75.75 0 0 0 7.25 3h-1.5ZM12.75 3a.75.75 0 0 0-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 0 0 .75-.75V3.75a.75.75 0 0 0-.75-.75h-1.5Z" />
+                                            </svg>
+                                        </button>
                                     </td>
                                 </tr>
                             </tbody>

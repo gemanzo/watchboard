@@ -26,6 +26,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/monitors/{monitor}/metrics', [MonitorController::class, 'metrics'])->name('monitors.metrics');
     Route::get('/monitors/{monitor}/edit', [MonitorController::class, 'edit'])->name('monitors.edit');
     Route::put('/monitors/{monitor}', [MonitorController::class, 'update'])->name('monitors.update');
+    Route::patch('/monitors/{monitor}/pause', [MonitorController::class, 'togglePause'])->name('monitors.toggle-pause');
     Route::delete('/monitors/{monitor}', [MonitorController::class, 'destroy'])->name('monitors.destroy');
 
     // Status Pages

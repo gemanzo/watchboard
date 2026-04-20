@@ -113,6 +113,17 @@ class MonitorController extends Controller
             ->with('message', 'Monitor eliminato con successo.');
     }
 
+    public function togglePause(Request $request, Monitor $monitor): RedirectResponse
+    {
+        Gate::authorize('update', $monitor);
+
+        $monitor->update(['is_paused' => ! $monitor->is_paused]);
+
+        $message = $monitor->is_paused ? 'Monitor messo in pausa.' : 'Monitor ripreso.';
+
+        return redirect()->back()->with('message', $message);
+    }
+
     public function metrics(Request $request, Monitor $monitor): JsonResponse
     {
         Gate::authorize('view', $monitor);
