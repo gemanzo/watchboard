@@ -45,6 +45,12 @@ const showingNavigationDropdown = ref(false);
                                 >
                                     Status Pages
                                 </NavLink>
+                                <NavLink
+                                    :href="route('api-tokens.index')"
+                                    :active="route().current('api-tokens.*')"
+                                >
+                                    API
+                                </NavLink>
                             </div>
                         </div>
 
@@ -157,6 +163,12 @@ const showingNavigationDropdown = ref(false);
                             :active="route().current('status-pages.*')"
                         >
                             Status Pages
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('api-tokens.index')"
+                            :active="route().current('api-tokens.*')"
+                        >
+                            API
                         </ResponsiveNavLink>
                     </div>
 

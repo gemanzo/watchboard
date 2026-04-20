@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ApiTokenController;
 use App\Http\Controllers\MonitorController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StatusPageController;
@@ -18,6 +19,7 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [MonitorController::class, 'index'])->name('dashboard');
+    Route::redirect('/monitors', '/dashboard')->name('monitors.index');
     Route::get('/monitors/create', [MonitorController::class, 'create'])->name('monitors.create');
     Route::post('/monitors', [MonitorController::class, 'store'])
         ->middleware('check.plan.limits:monitors')
@@ -28,6 +30,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/monitors/{monitor}', [MonitorController::class, 'update'])->name('monitors.update');
     Route::patch('/monitors/{monitor}/pause', [MonitorController::class, 'togglePause'])->name('monitors.toggle-pause');
     Route::delete('/monitors/{monitor}', [MonitorController::class, 'destroy'])->name('monitors.destroy');
+
+    // API Tokens
+    Route::get('/api-tokens', [ApiTokenController::class, 'index'])->name('api-tokens.index');
+    Route::post('/api-tokens', [ApiTokenController::class, 'store'])->name('api-tokens.store');
+    Route::delete('/api-tokens/{tokenId}', [ApiTokenController::class, 'destroy'])->name('api-tokens.destroy');
 
     // Status Pages
     Route::get('/status-pages', [StatusPageController::class, 'index'])->name('status-pages.index');
