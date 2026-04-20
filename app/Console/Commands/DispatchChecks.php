@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Jobs\PerformCheck;
 use App\Models\Monitor;
 use Illuminate\Console\Command;
+use Illuminate\Contracts\Bus\Dispatcher;
 
 class DispatchChecks extends Command
 {
@@ -20,7 +21,7 @@ class DispatchChecks extends Command
             ->filter(fn (Monitor $m) => $this->isDue($m));
 
         foreach ($due as $monitor) {
-            PerformCheck::dispatch($monitor);
+            app(Dispatcher::class)->dispatch(new PerformCheck($monitor));
         }
 
         $count = $due->count();

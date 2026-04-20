@@ -1,12 +1,15 @@
 <?php
 
 use App\Jobs\PerformCheck;
+use App\Models\CheckResult;
 use App\Models\Monitor;
 use App\Models\User;
-use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {
-    Queue::fake();
+    Http::fake([
+        '*' => Http::response('', 200),
+    ]);
 });
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
@@ -28,7 +31,12 @@ test('dispatches job for monitor never checked', function () {
 
     $this->artisan('monitors:dispatch-checks')->assertSuccessful();
 
-    Queue::assertPushed(PerformCheck::class, fn ($job) => $job->monitor->id === $monitor->id);
+    expect($monitor->fresh()->last_checked_at)->not->toBeNull();
+    $this->assertDatabaseCount('check_results', 1);
+    $this->assertDatabaseHas('check_results', [
+        'monitor_id'    => $monitor->id,
+        'is_successful' => true,
+    ]);
 });
 
 test('dispatches job for monitor whose interval has elapsed', function () {
@@ -39,7 +47,11 @@ test('dispatches job for monitor whose interval has elapsed', function () {
 
     $this->artisan('monitors:dispatch-checks')->assertSuccessful();
 
-    Queue::assertPushed(PerformCheck::class, fn ($job) => $job->monitor->id === $monitor->id);
+    expect($monitor->fresh()->last_checked_at)->not->toBeNull();
+    $this->assertDatabaseHas('check_results', [
+        'monitor_id'    => $monitor->id,
+        'is_successful' => true,
+    ]);
 });
 
 test('does not dispatch job for monitor checked within its interval', function () {
@@ -50,7 +62,10 @@ test('does not dispatch job for monitor checked within its interval', function (
 
     $this->artisan('monitors:dispatch-checks')->assertSuccessful();
 
-    Queue::assertNotPushed(PerformCheck::class, fn ($job) => $job->monitor->id === $monitor->id);
+    expect($monitor->fresh()->last_checked_at?->timestamp)->toBe($monitor->last_checked_at?->timestamp);
+    $this->assertDatabaseMissing('check_results', [
+        'monitor_id' => $monitor->id,
+    ]);
 });
 
 test('does not dispatch job for paused monitor', function () {
@@ -61,7 +76,10 @@ test('does not dispatch job for paused monitor', function () {
 
     $this->artisan('monitors:dispatch-checks')->assertSuccessful();
 
-    Queue::assertNotPushed(PerformCheck::class, fn ($job) => $job->monitor->id === $monitor->id);
+    expect($monitor->fresh()->last_checked_at)->toBeNull();
+    $this->assertDatabaseMissing('check_results', [
+        'monitor_id' => $monitor->id,
+    ]);
 });
 
 test('dispatches job exactly at interval boundary', function () {
@@ -72,7 +90,11 @@ test('dispatches job exactly at interval boundary', function () {
 
     $this->artisan('monitors:dispatch-checks')->assertSuccessful();
 
-    Queue::assertPushed(PerformCheck::class, fn ($job) => $job->monitor->id === $monitor->id);
+    expect($monitor->fresh()->last_checked_at)->not->toBeNull();
+    $this->assertDatabaseHas('check_results', [
+        'monitor_id'    => $monitor->id,
+        'is_successful' => true,
+    ]);
 });
 
 test('dispatches only due monitors when multiple exist', function () {
@@ -83,19 +105,17 @@ test('dispatches only due monitors when multiple exist', function () {
 
     $this->artisan('monitors:dispatch-checks')->assertSuccessful();
 
-    Queue::assertPushed(PerformCheck::class, 2);
-    Queue::assertPushed(PerformCheck::class, fn ($job) => $job->monitor->id === $due1->id);
-    Queue::assertPushed(PerformCheck::class, fn ($job) => $job->monitor->id === $due2->id);
-    Queue::assertNotPushed(PerformCheck::class, fn ($job) => $job->monitor->id === $notDue->id);
-    Queue::assertNotPushed(PerformCheck::class, fn ($job) => $job->monitor->id === $paused->id);
+    expect($due1->fresh()->last_checked_at)->not->toBeNull();
+    expect($due2->fresh()->last_checked_at)->not->toBeNull();
+    expect($notDue->fresh()->last_checked_at?->timestamp)->toBe($notDue->last_checked_at?->timestamp);
+    expect($paused->fresh()->last_checked_at)->toBeNull();
+    expect(CheckResult::count())->toBe(2);
 });
 
 test('job is dispatched to the checks queue', function () {
-    makeMonitor(['last_checked_at' => null]);
+    $job = new PerformCheck(makeMonitor(['last_checked_at' => null]));
 
-    $this->artisan('monitors:dispatch-checks')->assertSuccessful();
-
-    Queue::assertPushedOn('checks', PerformCheck::class);
+    expect($job->queue)->toBe('checks');
 });
 
 test('command outputs dispatched count', function () {
