@@ -3,7 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import Modal from '@/Components/Modal.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import { ref, onMounted, watch } from 'vue';
 import { Line } from 'vue-chartjs';
 import {
@@ -58,6 +58,11 @@ function uptimeBadgeClass(value: number | null): string {
 
 const showDeleteModal = ref(false);
 const deleteForm = useForm({});
+const pauseForm = useForm({});
+
+function togglePause() {
+    pauseForm.patch(route('monitors.toggle-pause', props.monitor.id));
+}
 
 const confirmDelete = () => {
     deleteForm.delete(route('monitors.destroy', props.monitor.id), {
@@ -169,6 +174,24 @@ watch(metrics, (pts) => {
 
                 <!-- Actions -->
                 <div class="flex items-center gap-3">
+                    <button
+                        :disabled="pauseForm.processing"
+                        class="inline-flex items-center gap-1.5 rounded-md border px-4 py-2 text-xs font-semibold uppercase tracking-widest shadow-sm transition focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-40"
+                        :class="monitor.is_paused
+                            ? 'border-indigo-300 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:border-indigo-500 dark:bg-indigo-900/20 dark:text-indigo-300 dark:hover:bg-indigo-900/40'
+                            : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'"
+                        @click="togglePause"
+                    >
+                        <!-- Play icon (resume) -->
+                        <svg v-if="monitor.is_paused" class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M6.3 2.84A1.5 1.5 0 0 0 4 4.11v11.78a1.5 1.5 0 0 0 2.3 1.27l9.344-5.891a1.5 1.5 0 0 0 0-2.538L6.3 2.84Z" />
+                        </svg>
+                        <!-- Pause icon -->
+                        <svg v-else class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M5.75 3a.75.75 0 0 0-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 0 0 .75-.75V3.75A.75.75 0 0 0 7.25 3h-1.5ZM12.75 3a.75.75 0 0 0-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 0 0 .75-.75V3.75a.75.75 0 0 0-.75-.75h-1.5Z" />
+                        </svg>
+                        {{ monitor.is_paused ? 'Riprendi' : 'Pausa' }}
+                    </button>
                     <Link
                         :href="route('monitors.edit', monitor.id)"
                         class="rounded-md border border-gray-300 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-widest text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
@@ -206,13 +229,29 @@ watch(metrics, (pts) => {
                             <dt class="text-xs font-medium uppercase tracking-wide text-gray-400">Stato</dt>
                             <dd class="mt-1">
                                 <span
-                                    class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize"
+                                    v-if="monitor.is_paused"
+                                    class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300"
+                                >
+                                    <span class="h-1.5 w-1.5 rounded-full bg-yellow-400" />
+                                    In pausa
+                                </span>
+                                <span
+                                    v-else
+                                    class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium capitalize"
                                     :class="{
                                         'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400': monitor.current_status === 'up',
                                         'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400': monitor.current_status === 'down',
                                         'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400': monitor.current_status === 'unknown',
                                     }"
                                 >
+                                    <span
+                                        class="h-1.5 w-1.5 rounded-full"
+                                        :class="{
+                                            'bg-green-500': monitor.current_status === 'up',
+                                            'bg-red-500': monitor.current_status === 'down',
+                                            'bg-gray-400': monitor.current_status === 'unknown',
+                                        }"
+                                    />
                                     {{ monitor.current_status }}
                                 </span>
                             </dd>

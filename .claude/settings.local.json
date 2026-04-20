@@ -17,7 +17,8 @@
       "Bash(./vendor/bin/pest tests/Feature/StatusPageCrudTest.php --no-coverage)",
       "Bash(./vendor/bin/pest tests/Feature/StatusPageMonitorsTest.php)",
       "Bash(./vendor/bin/pest)",
-      "Bash(./vendor/bin/pest tests/Feature/PublicStatusPageTest.php)"
+      "Bash(./vendor/bin/pest tests/Feature/PublicStatusPageTest.php)",
+      "Bash(php artisan *)"
     ]
   }
 }
