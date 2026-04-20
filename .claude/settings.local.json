@@ -19,7 +19,11 @@
       "Bash(./vendor/bin/pest)",
       "Bash(./vendor/bin/pest tests/Feature/PublicStatusPageTest.php)",
       "Bash(php artisan *)",
-      "Bash(composer show *)"
+      "Bash(composer show *)",
+      "Bash(composer require *)",
+      "Bash(curl -s http://127.0.0.1:8000/docs/api.json)",
+      "Bash(python3 -m json.tool)",
+      "Bash(python3 -c ' *)"
     ]
   }
 }
