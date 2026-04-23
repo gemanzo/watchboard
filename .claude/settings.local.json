@@ -24,7 +24,8 @@
       "Bash(curl -s http://127.0.0.1:8000/docs/api.json)",
       "Bash(python3 -m json.tool)",
       "Bash(python3 -c ' *)",
-      "Bash(npm list *)"
+      "Bash(npm list *)",
+      "Bash(php -r ' *)"
     ]
   }
 }
