@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import echo from '@/echo';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 interface Monitor {
     id: number;
@@ -17,9 +18,75 @@ interface Monitor {
     uptime_24h: number | null;
 }
 
-defineProps<{
+const props = defineProps<{
     monitors: Monitor[];
 }>();
+
+// ─── Reactive local copy (updated via WebSocket) ──────────────────────────────
+
+const monitors = ref<Monitor[]>([...props.monitors]);
+
+// Resync when Inertia navigates (e.g. after pause/delete)
+watch(() => props.monitors, (updated) => {
+    monitors.value = [...updated];
+});
+
+// Keep monitors sorted: down first, then unknown, then up; paused last
+const statusOrder: Record<string, number> = { down: 0, unknown: 1, up: 2 };
+
+const sortedMonitors = computed(() =>
+    [...monitors.value].sort((a, b) => {
+        if (a.is_paused !== b.is_paused) return a.is_paused ? 1 : -1;
+        const diff = (statusOrder[a.current_status] ?? 3) - (statusOrder[b.current_status] ?? 3);
+        return diff !== 0 ? diff : (a.name ?? '').localeCompare(b.name ?? '');
+    }),
+);
+
+// ─── WebSocket connection state ───────────────────────────────────────────────
+
+type WsState = 'connecting' | 'connected' | 'disconnected';
+const wsState = ref<WsState>('connecting');
+
+function bindConnectionState() {
+    const conn = echo.connector.pusher.connection;
+
+    const update = (state: WsState) => () => { wsState.value = state; };
+
+    conn.bind('connected',     update('connected'));
+    conn.bind('disconnected',  update('disconnected'));
+    conn.bind('unavailable',   update('disconnected'));
+    conn.bind('failed',        update('disconnected'));
+    conn.bind('connecting',    update('connecting'));
+
+    // Set initial state
+    wsState.value = conn.state === 'connected' ? 'connected'
+        : conn.state === 'connecting'          ? 'connecting'
+        : 'disconnected';
+}
+
+// ─── Channel subscription ─────────────────────────────────────────────────────
+
+const userId = computed(() => (usePage().props.auth as any).user.id as number);
+let channelName = '';
+
+onMounted(() => {
+    bindConnectionState();
+
+    channelName = `user.${userId.value}`;
+
+    echo.private(channelName).listen('.CheckCompleted', (e: { monitor: Partial<Monitor> }) => {
+        const idx = monitors.value.findIndex(m => m.id === e.monitor.id);
+        if (idx !== -1) {
+            monitors.value[idx] = { ...monitors.value[idx], ...e.monitor };
+        }
+    });
+});
+
+onUnmounted(() => {
+    if (channelName) echo.leave(channelName);
+});
+
+// ─── Flash / UI ───────────────────────────────────────────────────────────────
 
 const flash = computed(() => usePage().props.flash as { message?: string });
 
@@ -59,6 +126,8 @@ function getStatus(monitor: Monitor) {
     return statusConfig[monitor.current_status] ?? statusConfig.unknown;
 }
 
+// ─── Pause toggle ─────────────────────────────────────────────────────────────
+
 const pauseForms = new Map<number, ReturnType<typeof useForm>>();
 
 function getPauseForm(monitorId: number) {
@@ -80,9 +149,45 @@ function togglePause(event: Event, monitor: Monitor) {
     <AuthenticatedLayout>
         <template #header>
             <div class="flex items-center justify-between">
-                <h2 class="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
-                    I miei monitor
-                </h2>
+                <div class="flex items-center gap-3">
+                    <h2 class="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
+                        I miei monitor
+                    </h2>
+
+                    <!-- WebSocket status indicator -->
+                    <div class="flex items-center gap-1.5">
+                        <span
+                            class="h-1.5 w-1.5 rounded-full"
+                            :class="{
+                                'bg-green-500': wsState === 'connected',
+                                'bg-yellow-400 animate-pulse': wsState === 'connecting',
+                                'bg-gray-400': wsState === 'disconnected',
+                            }"
+                        />
+                        <span
+                            class="text-xs font-medium"
+                            :class="{
+                                'text-green-600 dark:text-green-400': wsState === 'connected',
+                                'text-yellow-600 dark:text-yellow-400': wsState === 'connecting',
+                                'text-gray-400': wsState === 'disconnected',
+                            }"
+                        >
+                            <template v-if="wsState === 'connected'">Live</template>
+                            <template v-else-if="wsState === 'connecting'">Connessione…</template>
+                            <template v-else>Offline</template>
+                        </span>
+                        <!-- Manual refresh button shown only when disconnected -->
+                        <button
+                            v-if="wsState === 'disconnected'"
+                            class="ml-1 rounded-md border border-gray-300 px-2 py-0.5 text-xs text-gray-500 transition hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700"
+                            title="Aggiorna la pagina"
+                            @click="router.reload()"
+                        >
+                            ↻ Aggiorna
+                        </button>
+                    </div>
+                </div>
+
                 <Link
                     :href="route('monitors.create')"
                     class="rounded-md bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:bg-gray-200 dark:text-gray-800 dark:hover:bg-white"
@@ -115,7 +220,7 @@ function togglePause(event: Event, monitor: Monitor) {
 
                     <!-- Empty state -->
                     <div
-                        v-if="monitors.length === 0"
+                        v-if="sortedMonitors.length === 0"
                         class="flex flex-col items-center justify-center py-20 text-center"
                     >
                         <svg
@@ -162,7 +267,7 @@ function togglePause(event: Event, monitor: Monitor) {
                             </thead>
                             <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
                                 <tr
-                                    v-for="monitor in monitors"
+                                    v-for="monitor in sortedMonitors"
                                     :key="monitor.id"
                                     class="group cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors"
                                     @click="$inertia.visit(route('monitors.show', monitor.id))"
@@ -187,34 +292,26 @@ function togglePause(event: Event, monitor: Monitor) {
 
                                     <!-- Uptime 24h -->
                                     <td class="px-6 py-4">
-                                        <span
-                                            :class="['inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium', uptimeBadgeClass(monitor.uptime_24h)]"
-                                        >
+                                        <span :class="['inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium', uptimeBadgeClass(monitor.uptime_24h)]">
                                             {{ monitor.uptime_24h !== null ? `${monitor.uptime_24h}%` : '—' }}
                                         </span>
                                     </td>
 
                                     <!-- Status code -->
                                     <td class="px-6 py-4 text-gray-600 dark:text-gray-300 font-mono">
-                                        <span v-if="monitor.last_status_code !== null">
-                                            {{ monitor.last_status_code }}
-                                        </span>
+                                        <span v-if="monitor.last_status_code !== null">{{ monitor.last_status_code }}</span>
                                         <span v-else class="text-gray-300 dark:text-gray-600">—</span>
                                     </td>
 
                                     <!-- Response time -->
                                     <td class="px-6 py-4 text-gray-600 dark:text-gray-300">
-                                        <span v-if="monitor.last_response_time_ms !== null">
-                                            {{ monitor.last_response_time_ms }} ms
-                                        </span>
+                                        <span v-if="monitor.last_response_time_ms !== null">{{ monitor.last_response_time_ms }} ms</span>
                                         <span v-else class="text-gray-300 dark:text-gray-600">—</span>
                                     </td>
 
                                     <!-- Ultimo check -->
                                     <td class="px-6 py-4 text-gray-500 dark:text-gray-400 text-xs">
-                                        <span v-if="monitor.last_checked_at_human">
-                                            {{ monitor.last_checked_at_human }}
-                                        </span>
+                                        <span v-if="monitor.last_checked_at_human">{{ monitor.last_checked_at_human }}</span>
                                         <span v-else class="text-gray-300 dark:text-gray-600">Mai</span>
                                     </td>
 
@@ -231,11 +328,9 @@ function togglePause(event: Event, monitor: Monitor) {
                                             class="inline-flex items-center justify-center rounded-md p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 dark:hover:bg-gray-700 dark:hover:text-gray-200"
                                             @click="togglePause($event, monitor)"
                                         >
-                                            <!-- Play icon (resume) -->
                                             <svg v-if="monitor.is_paused" class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                                                 <path d="M6.3 2.84A1.5 1.5 0 0 0 4 4.11v11.78a1.5 1.5 0 0 0 2.3 1.27l9.344-5.891a1.5 1.5 0 0 0 0-2.538L6.3 2.84Z" />
                                             </svg>
-                                            <!-- Pause icon -->
                                             <svg v-else class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                                                 <path d="M5.75 3a.75.75 0 0 0-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 0 0 .75-.75V3.75A.75.75 0 0 0 7.25 3h-1.5ZM12.75 3a.75.75 0 0 0-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 0 0 .75-.75V3.75a.75.75 0 0 0-.75-.75h-1.5Z" />
                                             </svg>
