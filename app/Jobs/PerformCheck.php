@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Events\CheckCompleted;
 use App\Events\MonitorStatusChanged;
 use App\Models\CheckResult;
 use App\Models\Monitor;
@@ -74,6 +75,8 @@ class PerformCheck implements ShouldQueue, ShouldBeUnique
         ]);
 
         $this->dispatchStatusChangedIfNeeded($oldStatus, $newStatus, $checkResult);
+
+        CheckCompleted::dispatch($this->monitor, $checkResult);
     }
 
     private function dispatchStatusChangedIfNeeded(
