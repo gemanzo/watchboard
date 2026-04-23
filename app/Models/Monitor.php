@@ -42,6 +42,11 @@ class Monitor extends Model
         return $this->hasMany(CheckResult::class);
     }
 
+    public function incidents(): HasMany
+    {
+        return $this->hasMany(Incident::class);
+    }
+
     public function latestCheckResult(): HasOne
     {
         return $this->hasOne(CheckResult::class)->latestOfMany('checked_at');

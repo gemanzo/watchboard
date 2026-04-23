@@ -44,10 +44,34 @@ interface Uptime {
     '30d': number | null;
 }
 
+interface Incident {
+    id: number;
+    started_at: string;
+    resolved_at: string | null;
+    duration_seconds: number | null;
+}
+
 const props = defineProps<{
     monitor: Monitor;
     uptime: Uptime;
+    incidents: Incident[];
 }>();
+
+function formatDate(iso: string): string {
+    return new Date(iso).toLocaleString('it-IT', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+    });
+}
+
+function formatDuration(seconds: number | null): string {
+    if (seconds === null) return '—';
+    if (seconds < 60) return `${seconds}s`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
 
 function uptimeBadgeClass(value: number | null): string {
     if (value === null) return 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400';
@@ -323,6 +347,61 @@ watch(metrics, (pts) => {
                         <Line :data="chartData" :options="chartOptions" />
                     </div>
                 </div>
+
+                <!-- Incidents -->
+                <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg dark:bg-gray-800">
+                    <div class="border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+                        <h3 class="text-base font-semibold text-gray-800 dark:text-gray-200">
+                            Storico downtime
+                        </h3>
+                    </div>
+
+                    <!-- Empty state -->
+                    <div v-if="incidents.length === 0" class="flex flex-col items-center justify-center py-12 text-center">
+                        <svg class="mb-3 h-10 w-10 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        </svg>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Nessun downtime registrato</p>
+                        <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Il monitor non ha mai avuto incidenti.</p>
+                    </div>
+
+                    <!-- Table -->
+                    <div v-else class="overflow-x-auto">
+                        <table class="w-full text-sm text-left">
+                            <thead class="border-b border-gray-200 bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:border-gray-700 dark:bg-gray-800/60 dark:text-gray-400">
+                                <tr>
+                                    <th class="px-6 py-3">Inizio downtime</th>
+                                    <th class="px-6 py-3">Fine downtime</th>
+                                    <th class="px-6 py-3">Durata</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                                <tr
+                                    v-for="incident in incidents"
+                                    :key="incident.id"
+                                    class="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors"
+                                >
+                                    <td class="px-6 py-4 text-gray-700 dark:text-gray-200 font-mono text-xs">
+                                        {{ formatDate(incident.started_at) }}
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span v-if="incident.resolved_at" class="font-mono text-xs text-gray-700 dark:text-gray-200">
+                                            {{ formatDate(incident.resolved_at) }}
+                                        </span>
+                                        <span v-else class="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-700 dark:bg-red-900/40 dark:text-red-300">
+                                            <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
+                                            In corso
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 text-gray-500 dark:text-gray-400 text-xs">
+                                        {{ formatDuration(incident.duration_seconds) }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
             </div>
         </div>
 

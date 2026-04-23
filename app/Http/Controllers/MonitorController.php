@@ -63,6 +63,17 @@ class MonitorController extends Controller
     {
         Gate::authorize('view', $monitor);
 
+        $incidents = $monitor->incidents()
+            ->latest('started_at')
+            ->limit(20)
+            ->get()
+            ->map(fn ($incident) => [
+                'id'               => $incident->id,
+                'started_at'       => $incident->started_at->toIso8601String(),
+                'resolved_at'      => $incident->resolved_at?->toIso8601String(),
+                'duration_seconds' => $incident->duration_seconds,
+            ]);
+
         return Inertia::render('Monitors/Show', [
             'monitor' => [
                 'id'               => $monitor->id,
@@ -73,7 +84,8 @@ class MonitorController extends Controller
                 'current_status'   => $monitor->current_status,
                 'is_paused'        => $monitor->is_paused,
             ],
-            'uptime' => $monitor->uptimeAll(),
+            'uptime'     => $monitor->uptimeAll(),
+            'incidents'  => $incidents,
         ]);
     }
 

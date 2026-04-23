@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Events\MonitorStatusChanged;
+use App\Listeners\CloseIncident;
+use App\Listeners\OpenIncident;
 use App\Listeners\SendDownNotification;
 use App\Listeners\SendRecoveryNotification;
 use Dedoc\Scramble\Scramble;
@@ -33,6 +35,8 @@ class AppServiceProvider extends ServiceProvider
     {
         Vite::prefetch(concurrency: 3);
 
+        Event::listen(MonitorStatusChanged::class, OpenIncident::class);
+        Event::listen(MonitorStatusChanged::class, CloseIncident::class);
         Event::listen(MonitorStatusChanged::class, SendDownNotification::class);
         Event::listen(MonitorStatusChanged::class, SendRecoveryNotification::class);
 
