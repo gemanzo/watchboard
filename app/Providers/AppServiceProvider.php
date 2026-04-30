@@ -2,17 +2,11 @@
 
 namespace App\Providers;
 
-use App\Events\MonitorStatusChanged;
-use App\Listeners\CloseIncident;
-use App\Listeners\OpenIncident;
-use App\Listeners\SendDownNotification;
-use App\Listeners\SendRecoveryNotification;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\SecurityScheme;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Vite;
@@ -34,11 +28,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Vite::prefetch(concurrency: 3);
-
-        Event::listen(MonitorStatusChanged::class, OpenIncident::class);
-        Event::listen(MonitorStatusChanged::class, CloseIncident::class);
-        Event::listen(MonitorStatusChanged::class, SendDownNotification::class);
-        Event::listen(MonitorStatusChanged::class, SendRecoveryNotification::class);
 
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
