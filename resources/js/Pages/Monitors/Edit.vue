@@ -5,10 +5,13 @@ import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import Modal from '@/Components/Modal.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
+import ProBadge from '@/Components/ProBadge.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
+
+const ALL_INTERVALS = [1, 2, 3, 5];
 
 interface Monitor {
     id: number;
@@ -18,18 +21,23 @@ interface Monitor {
     interval_minutes: number;
     current_status: string;
     is_paused: boolean;
+    confirmation_threshold: number;
 }
 
 const props = defineProps<{
     monitor: Monitor;
     availableIntervals: number[];
+    maxThreshold: number;
 }>();
 
+const isPro = props.maxThreshold > 1;
+
 const form = useForm({
-    name:             props.monitor.name ?? '',
-    url:              props.monitor.url,
-    method:           props.monitor.method,
-    interval_minutes: props.monitor.interval_minutes,
+    name:                   props.monitor.name ?? '',
+    url:                    props.monitor.url,
+    method:                 props.monitor.method,
+    interval_minutes:       props.monitor.interval_minutes,
+    confirmation_threshold: props.monitor.confirmation_threshold,
 });
 
 const submit = () => {
@@ -45,6 +53,14 @@ const confirmDelete = () => {
         onSuccess: () => { showDeleteModal.value = false; },
     });
 };
+
+function intervalLabel(minutes: number): string {
+    return minutes === 1 ? '1 minuto' : `${minutes} minuti`;
+}
+
+function isIntervalLocked(minutes: number): boolean {
+    return !props.availableIntervals.includes(minutes);
+}
 </script>
 
 <template>
@@ -116,21 +132,46 @@ const confirmDelete = () => {
 
                             <!-- Interval -->
                             <div>
-                                <InputLabel for="interval_minutes" value="Intervallo" />
+                                <div class="flex items-center">
+                                    <InputLabel for="interval_minutes" value="Intervallo" />
+                                </div>
                                 <select
                                     id="interval_minutes"
                                     v-model="form.interval_minutes"
                                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
                                 >
                                     <option
-                                        v-for="interval in availableIntervals"
+                                        v-for="interval in ALL_INTERVALS"
                                         :key="interval"
                                         :value="interval"
+                                        :disabled="isIntervalLocked(interval)"
                                     >
-                                        {{ interval === 1 ? '1 minuto' : `${interval} minuti` }}
+                                        {{ intervalLabel(interval) }}{{ isIntervalLocked(interval) ? ' — Solo Piano Pro' : '' }}
                                     </option>
                                 </select>
                                 <InputError class="mt-2" :message="form.errors.interval_minutes" />
+                            </div>
+
+                            <!-- Confirmation threshold -->
+                            <div>
+                                <div class="flex items-center">
+                                    <InputLabel for="confirmation_threshold" value="Soglia di conferma" />
+                                    <ProBadge v-if="!isPro" />
+                                </div>
+                                <select
+                                    id="confirmation_threshold"
+                                    v-model="form.confirmation_threshold"
+                                    :disabled="!isPro"
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                                >
+                                    <option :value="1">1 check (immediato)</option>
+                                    <option :value="2" :disabled="maxThreshold < 2">2 check consecutivi</option>
+                                    <option :value="3" :disabled="maxThreshold < 3">3 check consecutivi</option>
+                                </select>
+                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                    Quanti check falliti consecutivi prima di ricevere un alert.
+                                </p>
+                                <InputError class="mt-2" :message="form.errors.confirmation_threshold" />
                             </div>
 
                             <!-- Actions -->

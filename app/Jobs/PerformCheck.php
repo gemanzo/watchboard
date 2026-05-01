@@ -61,7 +61,8 @@ class PerformCheck implements ShouldQueue, ShouldBeUnique
             $isSuccessful   = false;
         }
 
-        $newStatus   = $isSuccessful ? 'up' : 'down';
+        [$newStatus, $newConsecutiveFailures] = $this->resolveStatusAndCounter($isSuccessful, $oldStatus);
+
         $checkResult = $this->monitor->checkResults()->create([
             'status_code'      => $statusCode,
             'response_time_ms' => $responseTimeMs,
@@ -70,13 +71,38 @@ class PerformCheck implements ShouldQueue, ShouldBeUnique
         ]);
 
         $this->monitor->update([
-            'last_checked_at' => $startedAt,
-            'current_status'  => $newStatus,
+            'last_checked_at'      => $startedAt,
+            'current_status'       => $newStatus,
+            'consecutive_failures' => $newConsecutiveFailures,
         ]);
 
         $this->dispatchStatusChangedIfNeeded($oldStatus, $newStatus, $checkResult);
 
         CheckCompleted::dispatch($this->monitor, $checkResult);
+    }
+
+    /**
+     * Determine the new status and consecutive-failure counter after a check.
+     *
+     * A failure only flips the status to 'down' once consecutive_failures
+     * reaches confirmation_threshold, preventing noisy alerts for transient
+     * network blips. A successful check always resets the counter to 0.
+     *
+     * @return array{0: string, 1: int} [newStatus, newConsecutiveFailures]
+     */
+    private function resolveStatusAndCounter(bool $isSuccessful, string $oldStatus): array
+    {
+        if ($isSuccessful) {
+            return ['up', 0];
+        }
+
+        $newConsecutiveFailures = $this->monitor->consecutive_failures + 1;
+
+        $newStatus = ($newConsecutiveFailures >= $this->monitor->confirmation_threshold)
+            ? 'down'
+            : $oldStatus;
+
+        return [$newStatus, $newConsecutiveFailures];
     }
 
     private function dispatchStatusChangedIfNeeded(

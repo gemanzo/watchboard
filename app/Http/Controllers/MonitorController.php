@@ -44,8 +44,11 @@ class MonitorController extends Controller
 
     public function create(Request $request): Response
     {
+        $plan = $request->user()->planConfig();
+
         return Inertia::render('Monitors/Create', [
-            'availableIntervals' => $request->user()->planConfig()['intervals'],
+            'availableIntervals'    => $plan['intervals'],
+            'maxThreshold'          => (int) $plan['max_confirmation_threshold'],
         ]);
     }
 
@@ -93,17 +96,21 @@ class MonitorController extends Controller
     {
         Gate::authorize('update', $monitor);
 
+        $plan = $request->user()->planConfig();
+
         return Inertia::render('Monitors/Edit', [
             'monitor'            => [
-                'id'               => $monitor->id,
-                'name'             => $monitor->name,
-                'url'              => $monitor->url,
-                'method'           => $monitor->method,
-                'interval_minutes' => $monitor->interval_minutes,
-                'current_status'   => $monitor->current_status,
-                'is_paused'        => $monitor->is_paused,
+                'id'                     => $monitor->id,
+                'name'                   => $monitor->name,
+                'url'                    => $monitor->url,
+                'method'                 => $monitor->method,
+                'interval_minutes'       => $monitor->interval_minutes,
+                'current_status'         => $monitor->current_status,
+                'is_paused'              => $monitor->is_paused,
+                'confirmation_threshold' => $monitor->confirmation_threshold,
             ],
-            'availableIntervals' => $request->user()->planConfig()['intervals'],
+            'availableIntervals' => $plan['intervals'],
+            'maxThreshold'       => (int) $plan['max_confirmation_threshold'],
         ]);
     }
 

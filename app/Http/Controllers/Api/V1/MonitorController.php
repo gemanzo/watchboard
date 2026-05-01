@@ -45,11 +45,14 @@ class MonitorController extends Controller
 
         $minimumInterval = (int) $request->user()->planConfig()['min_interval_minutes'];
 
+        $maxThreshold = (int) $request->user()->planConfig()['max_confirmation_threshold'];
+
         $validated = $request->validate([
-            'name'             => ['nullable', 'string', 'max:255'],
-            'url'              => ['required', 'url', 'max:2048'],
-            'method'           => ['required', 'in:GET,HEAD'],
-            'interval_minutes' => ['required', 'integer', 'min:' . $minimumInterval],
+            'name'                   => ['nullable', 'string', 'max:255'],
+            'url'                    => ['required', 'url', 'max:2048'],
+            'method'                 => ['required', 'in:GET,HEAD'],
+            'interval_minutes'       => ['required', 'integer', 'min:' . $minimumInterval],
+            'confirmation_threshold' => ['nullable', 'integer', 'min:1', 'max:' . $maxThreshold],
         ]);
 
         $monitor = $request->user()->monitors()->create(
@@ -86,11 +89,14 @@ class MonitorController extends Controller
 
         $minimumInterval = (int) $request->user()->planConfig()['min_interval_minutes'];
 
+        $maxThreshold = (int) $request->user()->planConfig()['max_confirmation_threshold'];
+
         $validated = $request->validate([
-            'name'             => ['nullable', 'string', 'max:255'],
-            'url'              => ['required', 'url', 'max:2048'],
-            'method'           => ['required', 'in:GET,HEAD'],
-            'interval_minutes' => ['required', 'integer', 'min:' . $minimumInterval],
+            'name'                   => ['nullable', 'string', 'max:255'],
+            'url'                    => ['required', 'url', 'max:2048'],
+            'method'                 => ['required', 'in:GET,HEAD'],
+            'interval_minutes'       => ['required', 'integer', 'min:' . $minimumInterval],
+            'confirmation_threshold' => ['nullable', 'integer', 'min:1', 'max:' . $maxThreshold],
         ]);
 
         $monitor->update($validated);

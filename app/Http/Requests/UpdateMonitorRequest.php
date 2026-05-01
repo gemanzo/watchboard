@@ -16,11 +16,14 @@ class UpdateMonitorRequest extends FormRequest
     {
         $minimumInterval = (int) $this->user()->planConfig()['min_interval_minutes'];
 
+        $maxThreshold = (int) $this->user()->planConfig()['max_confirmation_threshold'];
+
         return [
-            'name'             => ['nullable', 'string', 'max:255'],
-            'url'              => ['required', 'url', 'max:2048'],
-            'method'           => ['required', 'in:GET,HEAD'],
-            'interval_minutes' => ['required', 'integer', 'min:'.$minimumInterval],
+            'name'                   => ['nullable', 'string', 'max:255'],
+            'url'                    => ['required', 'url', 'max:2048'],
+            'method'                 => ['required', 'in:GET,HEAD'],
+            'interval_minutes'       => ['required', 'integer', 'min:'.$minimumInterval],
+            'confirmation_threshold' => ['nullable', 'integer', 'min:1', 'max:'.$maxThreshold],
         ];
     }
 }
