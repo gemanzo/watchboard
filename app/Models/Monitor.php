@@ -22,13 +22,17 @@ class Monitor extends Model
         'current_status',
         'is_paused',
         'last_checked_at',
+        'confirmation_threshold',
+        'consecutive_failures',
     ];
 
     protected function casts(): array
     {
         return [
-            'is_paused'       => 'boolean',
-            'last_checked_at' => 'datetime',
+            'is_paused'              => 'boolean',
+            'last_checked_at'        => 'datetime',
+            'confirmation_threshold' => 'integer',
+            'consecutive_failures'   => 'integer',
         ];
     }
 

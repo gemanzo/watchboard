@@ -20,8 +20,10 @@ class MonitorFactory extends Factory
             'method'           => fake()->randomElement(['GET', 'HEAD']),
             'interval_minutes' => fake()->randomElement([1, 2, 3, 5]),
             'current_status'   => fake()->randomElement(['unknown', 'up', 'down']),
-            'is_paused'        => false,
-            'last_checked_at'  => null,
+            'is_paused'              => false,
+            'last_checked_at'        => null,
+            'confirmation_threshold' => 1,
+            'consecutive_failures'   => 0,
         ];
     }
 
