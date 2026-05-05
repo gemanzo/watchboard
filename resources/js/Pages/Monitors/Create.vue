@@ -148,14 +148,15 @@ function isIntervalLocked(minutes: number): boolean {
                                     <ProBadge v-if="!responseTimeAlertsEnabled" />
                                 </div>
                                 <div class="relative mt-1">
-                                    <TextInput
+                                    <input
                                         id="response_time_threshold_ms"
                                         type="number"
                                         min="100"
                                         step="100"
-                                        class="block w-full pr-12"
+                                        class="block w-full rounded-md border-gray-300 pr-12 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:focus:border-indigo-600 dark:focus:ring-indigo-600"
                                         :class="{ 'cursor-not-allowed opacity-50': !responseTimeAlertsEnabled }"
-                                        v-model.number="form.response_time_threshold_ms"
+                                        :value="form.response_time_threshold_ms ?? ''"
+                                        @input="form.response_time_threshold_ms = ($event.target as HTMLInputElement).value === '' ? null : Number(($event.target as HTMLInputElement).value)"
                                         :disabled="!responseTimeAlertsEnabled"
                                         placeholder="Es. 2000"
                                     />
