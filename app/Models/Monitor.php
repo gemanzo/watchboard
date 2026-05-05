@@ -24,6 +24,7 @@ class Monitor extends Model
         'last_checked_at',
         'confirmation_threshold',
         'consecutive_failures',
+        'response_time_threshold_ms',
     ];
 
     protected function casts(): array
@@ -31,8 +32,9 @@ class Monitor extends Model
         return [
             'is_paused'              => 'boolean',
             'last_checked_at'        => 'datetime',
-            'confirmation_threshold' => 'integer',
-            'consecutive_failures'   => 'integer',
+            'confirmation_threshold'     => 'integer',
+            'consecutive_failures'       => 'integer',
+            'response_time_threshold_ms' => 'integer',
         ];
     }
 

@@ -47,8 +47,9 @@ class MonitorController extends Controller
         $plan = $request->user()->planConfig();
 
         return Inertia::render('Monitors/Create', [
-            'availableIntervals'    => $plan['intervals'],
-            'maxThreshold'          => (int) $plan['max_confirmation_threshold'],
+            'availableIntervals'         => $plan['intervals'],
+            'maxThreshold'               => (int) $plan['max_confirmation_threshold'],
+            'responseTimeAlertsEnabled'  => (bool) $plan['response_time_alerts'],
         ]);
     }
 
@@ -107,10 +108,12 @@ class MonitorController extends Controller
                 'interval_minutes'       => $monitor->interval_minutes,
                 'current_status'         => $monitor->current_status,
                 'is_paused'              => $monitor->is_paused,
-                'confirmation_threshold' => $monitor->confirmation_threshold,
+                'confirmation_threshold'     => $monitor->confirmation_threshold,
+                'response_time_threshold_ms' => $monitor->response_time_threshold_ms,
             ],
-            'availableIntervals' => $plan['intervals'],
-            'maxThreshold'       => (int) $plan['max_confirmation_threshold'],
+            'availableIntervals'        => $plan['intervals'],
+            'maxThreshold'              => (int) $plan['max_confirmation_threshold'],
+            'responseTimeAlertsEnabled' => (bool) $plan['response_time_alerts'],
         ]);
     }
 

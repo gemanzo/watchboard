@@ -12,16 +12,18 @@ const ALL_INTERVALS = [1, 2, 3, 5];
 const props = defineProps<{
     availableIntervals: number[];
     maxThreshold: number;
+    responseTimeAlertsEnabled: boolean;
 }>();
 
 const isPro = props.maxThreshold > 1;
 
 const form = useForm({
-    name:                   '',
-    url:                    '',
-    method:                 'GET',
-    interval_minutes:       props.availableIntervals[0],
-    confirmation_threshold: 1,
+    name:                        '',
+    url:                         '',
+    method:                      'GET',
+    interval_minutes:            props.availableIntervals[0],
+    confirmation_threshold:      1,
+    response_time_threshold_ms:  null as number | null,
 });
 
 const submit = () => {
@@ -137,6 +139,35 @@ function isIntervalLocked(minutes: number): boolean {
                                     Quanti check falliti consecutivi prima di ricevere un alert.
                                 </p>
                                 <InputError class="mt-2" :message="form.errors.confirmation_threshold" />
+                            </div>
+
+                            <!-- Response time threshold -->
+                            <div>
+                                <div class="flex items-center">
+                                    <InputLabel for="response_time_threshold_ms" value="Soglia response time (opzionale)" />
+                                    <ProBadge v-if="!responseTimeAlertsEnabled" />
+                                </div>
+                                <div class="relative mt-1">
+                                    <input
+                                        id="response_time_threshold_ms"
+                                        type="number"
+                                        min="100"
+                                        step="100"
+                                        class="block w-full rounded-md border-gray-300 pr-12 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:focus:border-indigo-600 dark:focus:ring-indigo-600"
+                                        :class="{ 'cursor-not-allowed opacity-50': !responseTimeAlertsEnabled }"
+                                        :value="form.response_time_threshold_ms ?? ''"
+                                        @input="form.response_time_threshold_ms = ($event.target as HTMLInputElement).value === '' ? null : Number(($event.target as HTMLInputElement).value)"
+                                        :disabled="!responseTimeAlertsEnabled"
+                                        placeholder="Es. 2000"
+                                    />
+                                    <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-sm text-gray-400">
+                                        ms
+                                    </span>
+                                </div>
+                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                    Ricevi un alert quando la risposta supera questa soglia. Lascia vuoto per disabilitare.
+                                </p>
+                                <InputError class="mt-2" :message="form.errors.response_time_threshold_ms" />
                             </div>
 
                             <!-- Actions -->
