@@ -12,6 +12,37 @@ class UpdateMonitorRequest extends FormRequest
         return $this->user()->can('update', $this->route('monitor'));
     }
 
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            if (! $this->boolean('ssl_check_enabled')) {
+                return;
+            }
+
+            /** @var \App\Models\Monitor $monitor */
+            $monitor = $this->route('monitor');
+
+            if ($monitor->ssl_check_enabled) {
+                return;
+            }
+
+            $maxSsl = $this->user()->planConfig()['max_ssl_monitors'] ?? null;
+
+            if ($maxSsl === null) {
+                return;
+            }
+
+            $used = $this->user()->monitors()
+                ->where('ssl_check_enabled', true)
+                ->where('id', '!=', $monitor->id)
+                ->count();
+
+            if ($used >= $maxSsl) {
+                $validator->errors()->add('ssl_check_enabled', 'Hai raggiunto il limite di monitor SSL per il tuo piano.');
+            }
+        });
+    }
+
     public function rules(): array
     {
         $plan         = $this->user()->planConfig();

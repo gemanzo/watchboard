@@ -44,12 +44,18 @@ class MonitorController extends Controller
 
     public function create(Request $request): Response
     {
-        $plan = $request->user()->planConfig();
+        $user = $request->user();
+        $plan = $user->planConfig();
+        $maxSsl = $plan['max_ssl_monitors'] ?? null;
+
+        $sslCheckAvailable = $maxSsl === null
+            || $user->monitors()->where('ssl_check_enabled', true)->count() < $maxSsl;
 
         return Inertia::render('Monitors/Create', [
-            'availableIntervals'         => $plan['intervals'],
-            'maxThreshold'               => (int) $plan['max_confirmation_threshold'],
-            'responseTimeAlertsEnabled'  => (bool) $plan['response_time_alerts'],
+            'availableIntervals'        => $plan['intervals'],
+            'maxThreshold'              => (int) $plan['max_confirmation_threshold'],
+            'responseTimeAlertsEnabled' => (bool) $plan['response_time_alerts'],
+            'sslCheckAvailable'         => $sslCheckAvailable,
         ]);
     }
 
@@ -112,7 +118,13 @@ class MonitorController extends Controller
     {
         Gate::authorize('update', $monitor);
 
-        $plan = $request->user()->planConfig();
+        $user = $request->user();
+        $plan = $user->planConfig();
+        $maxSsl = $plan['max_ssl_monitors'] ?? null;
+
+        $sslCheckAvailable = $monitor->ssl_check_enabled
+            || $maxSsl === null
+            || $user->monitors()->where('ssl_check_enabled', true)->where('id', '!=', $monitor->id)->count() < $maxSsl;
 
         return Inertia::render('Monitors/Edit', [
             'monitor'            => [
@@ -131,6 +143,7 @@ class MonitorController extends Controller
             'availableIntervals'        => $plan['intervals'],
             'maxThreshold'              => (int) $plan['max_confirmation_threshold'],
             'responseTimeAlertsEnabled' => (bool) $plan['response_time_alerts'],
+            'sslCheckAvailable'         => $sslCheckAvailable,
         ]);
     }
 

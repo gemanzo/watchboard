@@ -13,6 +13,7 @@ const props = defineProps<{
     availableIntervals: number[];
     maxThreshold: number;
     responseTimeAlertsEnabled: boolean;
+    sslCheckAvailable: boolean;
 }>();
 
 const isPro = props.maxThreshold > 1;
@@ -179,16 +180,18 @@ function isIntervalLocked(minutes: number): boolean {
                                         type="button"
                                         role="switch"
                                         :aria-checked="form.ssl_check_enabled"
-                                        @click="form.ssl_check_enabled = !form.ssl_check_enabled"
+                                        :disabled="!sslCheckAvailable"
+                                        @click="sslCheckAvailable && (form.ssl_check_enabled = !form.ssl_check_enabled)"
                                         class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                                        :class="form.ssl_check_enabled ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700'"
+                                        :class="[form.ssl_check_enabled ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700', !sslCheckAvailable ? 'cursor-not-allowed opacity-50' : '']"
                                     >
                                         <span
                                             class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
                                             :class="form.ssl_check_enabled ? 'translate-x-6' : 'translate-x-1'"
                                         />
                                     </button>
-                                    <InputLabel value="Monitoraggio SSL" class="!mb-0 cursor-pointer" @click="form.ssl_check_enabled = !form.ssl_check_enabled" />
+                                    <InputLabel value="Monitoraggio SSL" class="!mb-0 cursor-pointer" @click="sslCheckAvailable && (form.ssl_check_enabled = !form.ssl_check_enabled)" />
+                                    <ProBadge v-if="!sslCheckAvailable" />
                                 </div>
                                 <p class="text-sm text-gray-500 dark:text-gray-400">
                                     Controlla la scadenza del certificato SSL ogni giorno e invia un alert prima che scada.
