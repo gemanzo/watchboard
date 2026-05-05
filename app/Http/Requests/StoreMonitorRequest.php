@@ -28,6 +28,8 @@ class StoreMonitorRequest extends FormRequest
             'response_time_threshold_ms' => $responseTimeAlertsAllowed
                 ? ['nullable', 'integer', 'min:100']
                 : ['prohibited'],
+            'ssl_check_enabled'    => ['boolean'],
+            'ssl_expiry_alert_days' => ['integer', 'min:1', 'max:90'],
         ];
     }
 }

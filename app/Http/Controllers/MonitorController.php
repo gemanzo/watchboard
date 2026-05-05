@@ -78,6 +78,10 @@ class MonitorController extends Controller
                 'duration_seconds' => $incident->duration_seconds,
             ]);
 
+        $sslCheck = $monitor->ssl_check_enabled
+            ? $monitor->latestSslCheck
+            : null;
+
         return Inertia::render('Monitors/Show', [
             'monitor' => [
                 'id'               => $monitor->id,
@@ -87,9 +91,20 @@ class MonitorController extends Controller
                 'interval_minutes' => $monitor->interval_minutes,
                 'current_status'   => $monitor->current_status,
                 'is_paused'        => $monitor->is_paused,
+                'ssl_check_enabled' => $monitor->ssl_check_enabled,
             ],
             'uptime'     => $monitor->uptimeAll(),
             'incidents'  => $incidents,
+            'sslCheck'   => $sslCheck ? [
+                'issuer'            => $sslCheck->issuer,
+                'valid_from'        => $sslCheck->valid_from?->toDateString(),
+                'valid_to'          => $sslCheck->valid_to?->toDateString(),
+                'days_until_expiry' => $sslCheck->days_until_expiry,
+                'is_valid'          => $sslCheck->is_valid,
+                'error'             => $sslCheck->error,
+                'alert_level'       => $sslCheck->alertLevel(),
+                'checked_at'        => $sslCheck->checked_at->diffForHumans(),
+            ] : null,
         ]);
     }
 
@@ -110,6 +125,8 @@ class MonitorController extends Controller
                 'is_paused'              => $monitor->is_paused,
                 'confirmation_threshold'     => $monitor->confirmation_threshold,
                 'response_time_threshold_ms' => $monitor->response_time_threshold_ms,
+                'ssl_check_enabled'          => $monitor->ssl_check_enabled,
+                'ssl_expiry_alert_days'      => $monitor->ssl_expiry_alert_days,
             ],
             'availableIntervals'        => $plan['intervals'],
             'maxThreshold'              => (int) $plan['max_confirmation_threshold'],

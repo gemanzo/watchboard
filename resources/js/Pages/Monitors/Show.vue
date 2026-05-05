@@ -28,6 +28,18 @@ interface Monitor {
     interval_minutes: number;
     current_status: 'unknown' | 'up' | 'down';
     is_paused: boolean;
+    ssl_check_enabled: boolean;
+}
+
+interface SslCheck {
+    issuer: string | null;
+    valid_from: string | null;
+    valid_to: string | null;
+    days_until_expiry: number | null;
+    is_valid: boolean;
+    error: string | null;
+    alert_level: 'ok' | 'warning' | 'critical' | 'expired';
+    checked_at: string;
 }
 
 interface MetricPoint {
@@ -55,6 +67,7 @@ const props = defineProps<{
     monitor: Monitor;
     uptime: Uptime;
     incidents: Incident[];
+    sslCheck: SslCheck | null;
 }>();
 
 function formatDate(iso: string): string {
@@ -281,6 +294,87 @@ watch(metrics, (pts) => {
                             </dd>
                         </div>
                     </dl>
+                </div>
+
+                <!-- SSL Certificate -->
+                <div v-if="monitor.ssl_check_enabled" class="overflow-hidden bg-white shadow-sm sm:rounded-lg dark:bg-gray-800">
+                    <div class="border-b border-gray-200 px-6 py-4 dark:border-gray-700 flex items-center justify-between">
+                        <h3 class="text-base font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                            <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
+                            </svg>
+                            Certificato SSL
+                        </h3>
+                        <span v-if="sslCheck" class="text-xs text-gray-400 dark:text-gray-500">
+                            aggiornato {{ sslCheck.checked_at }}
+                        </span>
+                    </div>
+
+                    <!-- No data yet -->
+                    <div v-if="!sslCheck" class="flex flex-col items-center justify-center py-10 text-center">
+                        <svg class="mb-3 h-8 w-8 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        </svg>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">In attesa del primo check SSL</p>
+                        <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Il check viene eseguito automaticamente ogni giorno.</p>
+                    </div>
+
+                    <!-- SSL data -->
+                    <div v-else class="p-6">
+                        <div class="flex flex-wrap items-start gap-6">
+                            <!-- Badge -->
+                            <div class="flex flex-col items-center gap-1.5 min-w-[80px]">
+                                <span
+                                    class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold"
+                                    :class="{
+                                        'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300': sslCheck.alert_level === 'ok',
+                                        'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300': sslCheck.alert_level === 'warning',
+                                        'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300': sslCheck.alert_level === 'critical',
+                                        'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300': sslCheck.alert_level === 'expired',
+                                    }"
+                                >
+                                    <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                        <circle v-if="sslCheck.alert_level === 'ok'" cx="10" cy="10" r="7" fill="currentColor" />
+                                        <path v-else fill-rule="evenodd" clip-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" />
+                                    </svg>
+                                    <span>
+                                        {{ sslCheck.alert_level === 'ok' ? 'Valido' : sslCheck.alert_level === 'warning' ? 'In scadenza' : sslCheck.alert_level === 'critical' ? 'Critico' : 'Scaduto' }}
+                                    </span>
+                                </span>
+                                <span v-if="sslCheck.days_until_expiry !== null && sslCheck.is_valid" class="text-xs text-gray-400">
+                                    {{ sslCheck.days_until_expiry }}g rimasti
+                                </span>
+                            </div>
+
+                            <!-- Details grid -->
+                            <dl class="grid grid-cols-2 gap-x-8 gap-y-3 text-sm sm:grid-cols-3 flex-1">
+                                <div v-if="sslCheck.issuer">
+                                    <dt class="text-xs font-medium uppercase tracking-wide text-gray-400">Emesso da</dt>
+                                    <dd class="mt-1 text-gray-700 dark:text-gray-200">{{ sslCheck.issuer }}</dd>
+                                </div>
+                                <div v-if="sslCheck.valid_from">
+                                    <dt class="text-xs font-medium uppercase tracking-wide text-gray-400">Valido dal</dt>
+                                    <dd class="mt-1 text-gray-700 dark:text-gray-200">{{ sslCheck.valid_from }}</dd>
+                                </div>
+                                <div v-if="sslCheck.valid_to">
+                                    <dt class="text-xs font-medium uppercase tracking-wide text-gray-400">Scade il</dt>
+                                    <dd
+                                        class="mt-1 font-medium"
+                                        :class="{
+                                            'text-gray-700 dark:text-gray-200': sslCheck.alert_level === 'ok',
+                                            'text-yellow-600 dark:text-yellow-400': sslCheck.alert_level === 'warning',
+                                            'text-orange-600 dark:text-orange-400': sslCheck.alert_level === 'critical',
+                                            'text-red-600 dark:text-red-400': sslCheck.alert_level === 'expired',
+                                        }"
+                                    >{{ sslCheck.valid_to }}</dd>
+                                </div>
+                                <div v-if="sslCheck.error" class="col-span-full">
+                                    <dt class="text-xs font-medium uppercase tracking-wide text-gray-400">Errore</dt>
+                                    <dd class="mt-1 text-red-600 dark:text-red-400 font-mono text-xs">{{ sslCheck.error }}</dd>
+                                </div>
+                            </dl>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Uptime -->
