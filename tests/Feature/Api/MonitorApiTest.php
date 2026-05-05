@@ -38,7 +38,19 @@ test('index response has correct attributes shape', function () {
     $response = $this->getJson('/api/v1/monitors')->assertOk();
 
     $attrs = $response->json('data.0.attributes');
-    expect($attrs)->toHaveKeys(['name', 'url', 'method', 'interval_minutes', 'current_status', 'is_paused', 'last_checked_at', 'created_at', 'updated_at']);
+    expect($attrs)->toHaveKeys([
+        'name',
+        'url',
+        'method',
+        'interval_minutes',
+        'current_status',
+        'is_paused',
+        'keyword_check',
+        'keyword_check_type',
+        'last_checked_at',
+        'created_at',
+        'updated_at',
+    ]);
     expect($response->json('data.0.type'))->toBe('monitor');
 });
 
@@ -99,6 +111,44 @@ test('store returns 403 when plan limit is reached', function () {
 
     $this->postJson('/api/v1/monitors', ['url' => 'https://extra.com', 'method' => 'GET', 'interval_minutes' => 5])
         ->assertStatus(403);
+});
+
+test('store returns 422 when free plan keyword monitor limit is reached', function () {
+    $user = User::factory()->create(['plan' => 'free']);
+    Monitor::factory()->for($user)->create([
+        'keyword_check' => 'Error',
+        'keyword_check_type' => 'contains',
+    ]);
+
+    Sanctum::actingAs($user);
+
+    $this->postJson('/api/v1/monitors', [
+        'url' => 'https://extra.com',
+        'method' => 'GET',
+        'interval_minutes' => 5,
+        'keyword_check' => 'Failure',
+        'keyword_check_type' => 'contains',
+    ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['keyword_check']);
+});
+
+test('store allows multiple keyword monitors on pro plan', function () {
+    $user = User::factory()->create(['plan' => 'pro']);
+    Monitor::factory()->for($user)->create([
+        'keyword_check' => 'Error',
+        'keyword_check_type' => 'contains',
+    ]);
+
+    Sanctum::actingAs($user);
+
+    $this->postJson('/api/v1/monitors', [
+        'url' => 'https://extra.com',
+        'method' => 'GET',
+        'interval_minutes' => 5,
+        'keyword_check' => 'Failure',
+        'keyword_check_type' => 'contains',
+    ])->assertStatus(201);
 });
 
 // ─── Show ──────────────────────────────────────────────────────────────────────
@@ -166,6 +216,31 @@ test('update returns 422 on invalid payload', function () {
 
     $this->putJson("/api/v1/monitors/{$monitor->id}", ['method' => 'INVALID'])
         ->assertStatus(422);
+});
+
+test('update returns 422 when free plan keyword monitor limit is reached', function () {
+    $user = User::factory()->create(['plan' => 'free']);
+    Monitor::factory()->for($user)->create([
+        'keyword_check' => 'Error',
+        'keyword_check_type' => 'contains',
+    ]);
+    $target = Monitor::factory()->for($user)->create([
+        'keyword_check' => null,
+        'keyword_check_type' => null,
+        'interval_minutes' => 5,
+    ]);
+
+    Sanctum::actingAs($user);
+
+    $this->putJson("/api/v1/monitors/{$target->id}", [
+        'url' => $target->url,
+        'method' => $target->method,
+        'interval_minutes' => $target->interval_minutes,
+        'keyword_check' => 'Failure',
+        'keyword_check_type' => 'contains',
+    ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['keyword_check']);
 });
 
 // ─── Destroy ───────────────────────────────────────────────────────────────────

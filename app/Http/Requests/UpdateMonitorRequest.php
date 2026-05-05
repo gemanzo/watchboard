@@ -15,30 +15,41 @@ class UpdateMonitorRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            if (! $this->boolean('ssl_check_enabled')) {
-                return;
-            }
-
             /** @var \App\Models\Monitor $monitor */
             $monitor = $this->route('monitor');
 
-            if ($monitor->ssl_check_enabled) {
+            if ($this->boolean('ssl_check_enabled') && ! $monitor->ssl_check_enabled) {
+                $maxSsl = $this->user()->planConfig()['max_ssl_monitors'] ?? null;
+
+                if ($maxSsl !== null) {
+                    $used = $this->user()->monitors()
+                        ->where('ssl_check_enabled', true)
+                        ->where('id', '!=', $monitor->id)
+                        ->count();
+
+                    if ($used >= $maxSsl) {
+                        $validator->errors()->add('ssl_check_enabled', 'Hai raggiunto il limite di monitor SSL per il tuo piano.');
+                    }
+                }
+            }
+
+            $isEnablingKeyword = $this->filled('keyword_check') && empty($monitor->keyword_check);
+            if (! $isEnablingKeyword) {
                 return;
             }
 
-            $maxSsl = $this->user()->planConfig()['max_ssl_monitors'] ?? null;
-
-            if ($maxSsl === null) {
+            $maxKeyword = $this->user()->planConfig()['max_keyword_monitors'] ?? null;
+            if ($maxKeyword === null) {
                 return;
             }
 
-            $used = $this->user()->monitors()
-                ->where('ssl_check_enabled', true)
+            $usedKeyword = $this->user()->monitors()
+                ->whereNotNull('keyword_check')
                 ->where('id', '!=', $monitor->id)
                 ->count();
 
-            if ($used >= $maxSsl) {
-                $validator->errors()->add('ssl_check_enabled', 'Hai raggiunto il limite di monitor SSL per il tuo piano.');
+            if ($usedKeyword >= $maxKeyword) {
+                $validator->errors()->add('keyword_check', 'Hai raggiunto il limite di monitor con keyword check per il tuo piano.');
             }
         });
     }
@@ -59,6 +70,8 @@ class UpdateMonitorRequest extends FormRequest
             'response_time_threshold_ms' => $responseTimeAlertsAllowed
                 ? ['nullable', 'integer', 'min:100']
                 : ['prohibited'],
+            'keyword_check'              => ['nullable', 'string', 'max:255', 'required_with:keyword_check_type'],
+            'keyword_check_type'         => ['nullable', 'in:contains,not_contains', 'required_with:keyword_check'],
             'ssl_check_enabled'     => ['boolean'],
             'ssl_expiry_alert_days' => ['integer', 'min:1', 'max:90'],
         ];

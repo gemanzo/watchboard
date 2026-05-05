@@ -25,6 +25,8 @@ class MonitorFactory extends Factory
             'confirmation_threshold'     => 1,
             'consecutive_failures'       => 0,
             'response_time_threshold_ms' => null,
+            'keyword_check'              => null,
+            'keyword_check_type'         => null,
             'ssl_check_enabled'          => false,
             'ssl_expiry_alert_days'      => 14,
         ];

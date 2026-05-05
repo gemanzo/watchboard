@@ -26,6 +26,8 @@ class Monitor extends Model
         'confirmation_threshold',
         'consecutive_failures',
         'response_time_threshold_ms',
+        'keyword_check',
+        'keyword_check_type',
         'ssl_check_enabled',
         'ssl_expiry_alert_days',
     ];
@@ -38,6 +40,8 @@ class Monitor extends Model
             'confirmation_threshold'     => 'integer',
             'consecutive_failures'       => 'integer',
             'response_time_threshold_ms' => 'integer',
+            'keyword_check'              => 'string',
+            'keyword_check_type'         => 'string',
             'ssl_check_enabled'          => 'boolean',
             'ssl_expiry_alert_days'      => 'integer',
         ];

@@ -14,6 +14,7 @@ const props = defineProps<{
     maxThreshold: number;
     responseTimeAlertsEnabled: boolean;
     sslCheckAvailable: boolean;
+    keywordCheckAvailable: boolean;
 }>();
 
 const isPro = props.maxThreshold > 1;
@@ -25,6 +26,8 @@ const form = useForm({
     interval_minutes:            props.availableIntervals[0],
     confirmation_threshold:      1,
     response_time_threshold_ms:  null as number | null,
+    keyword_check:               '',
+    keyword_check_type:          'contains' as 'contains' | 'not_contains',
     ssl_check_enabled:           false,
     ssl_expiry_alert_days:       14,
 });
@@ -171,6 +174,45 @@ function isIntervalLocked(minutes: number): boolean {
                                     Ricevi un alert quando la risposta supera questa soglia. Lascia vuoto per disabilitare.
                                 </p>
                                 <InputError class="mt-2" :message="form.errors.response_time_threshold_ms" />
+                            </div>
+
+                            <!-- Keyword check -->
+                            <div class="space-y-3">
+                                <div class="flex items-center gap-2">
+                                    <InputLabel for="keyword_check" value="Keyword check (opzionale)" />
+                                    <ProBadge v-if="!keywordCheckAvailable" />
+                                </div>
+                                <TextInput
+                                    id="keyword_check"
+                                    type="text"
+                                    class="mt-1 block w-full"
+                                    v-model="form.keyword_check"
+                                    autocomplete="off"
+                                    placeholder="Es. Application Error"
+                                    :disabled="!keywordCheckAvailable"
+                                    :class="{ 'cursor-not-allowed opacity-50': !keywordCheckAvailable }"
+                                />
+
+                                <div v-if="keywordCheckAvailable && form.keyword_check.trim() !== ''">
+                                    <InputLabel for="keyword_check_type" value="Regola keyword" />
+                                    <select
+                                        id="keyword_check_type"
+                                        v-model="form.keyword_check_type"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                                    >
+                                        <option value="contains">La risposta deve contenere la keyword</option>
+                                        <option value="not_contains">La risposta NON deve contenere la keyword</option>
+                                    </select>
+                                    <InputError class="mt-2" :message="form.errors.keyword_check_type" />
+                                </div>
+
+                                <p class="text-sm text-gray-500 dark:text-gray-400">
+                                    Se valorizzato, un check HTTP 2xx viene considerato fallito quando la regola keyword non viene rispettata. Lascia vuoto per disabilitare.
+                                </p>
+                                <p v-if="!keywordCheckAvailable" class="text-sm text-amber-600 dark:text-amber-400">
+                                    Hai raggiunto il limite di monitor con keyword check del tuo piano.
+                                </p>
+                                <InputError class="mt-2" :message="form.errors.keyword_check" />
                             </div>
 
                             <!-- SSL monitoring -->

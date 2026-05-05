@@ -117,6 +117,43 @@ test('pro user can create monitors without limit', function () {
     expect($user->monitors()->count())->toBe(26);
 });
 
+test('free user cannot create a second monitor with keyword check', function () {
+    $user = freeUser();
+    Monitor::factory()->forUser($user)->withInterval(5)->create([
+        'keyword_check' => 'Error',
+        'keyword_check_type' => 'contains',
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('monitors.store'), [
+            'url' => 'https://example.com',
+            'method' => 'GET',
+            'interval_minutes' => 5,
+            'keyword_check' => 'Failure',
+            'keyword_check_type' => 'contains',
+        ])
+        ->assertSessionHasErrors('keyword_check');
+});
+
+test('pro user can create multiple monitors with keyword check', function () {
+    $user = proUser();
+
+    Monitor::factory()->forUser($user)->withInterval(5)->create([
+        'keyword_check' => 'Error',
+        'keyword_check_type' => 'contains',
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('monitors.store'), [
+            'url' => 'https://example.com',
+            'method' => 'GET',
+            'interval_minutes' => 5,
+            'keyword_check' => 'Failure',
+            'keyword_check_type' => 'contains',
+        ])
+        ->assertRedirect(route('dashboard'));
+});
+
 // ─── Edit ─────────────────────────────────────────────────────────────────────
 
 test('owner can view the edit form pre-populated', function () {
@@ -187,6 +224,30 @@ test('non-owner cannot update monitor', function () {
             'interval_minutes' => 5,
         ])
         ->assertForbidden();
+});
+
+test('free user cannot enable keyword check on second monitor via update', function () {
+    $user = freeUser();
+
+    Monitor::factory()->forUser($user)->withInterval(5)->create([
+        'keyword_check' => 'Error',
+        'keyword_check_type' => 'contains',
+    ]);
+
+    $target = Monitor::factory()->forUser($user)->withInterval(5)->create([
+        'keyword_check' => null,
+        'keyword_check_type' => null,
+    ]);
+
+    $this->actingAs($user)
+        ->put(route('monitors.update', $target), [
+            'url' => $target->url,
+            'method' => $target->method,
+            'interval_minutes' => $target->interval_minutes,
+            'keyword_check' => 'Failure',
+            'keyword_check_type' => 'contains',
+        ])
+        ->assertSessionHasErrors('keyword_check');
 });
 
 // ─── Delete ───────────────────────────────────────────────────────────────────
