@@ -23,6 +23,8 @@ interface Monitor {
     is_paused: boolean;
     confirmation_threshold: number;
     response_time_threshold_ms: number | null;
+    ssl_check_enabled: boolean;
+    ssl_expiry_alert_days: number;
 }
 
 const props = defineProps<{
@@ -30,6 +32,7 @@ const props = defineProps<{
     availableIntervals: number[];
     maxThreshold: number;
     responseTimeAlertsEnabled: boolean;
+    sslCheckAvailable: boolean;
 }>();
 
 const isPro = props.maxThreshold > 1;
@@ -41,6 +44,8 @@ const form = useForm({
     interval_minutes:           props.monitor.interval_minutes,
     confirmation_threshold:     props.monitor.confirmation_threshold,
     response_time_threshold_ms: props.monitor.response_time_threshold_ms,
+    ssl_check_enabled:          props.monitor.ssl_check_enabled,
+    ssl_expiry_alert_days:      props.monitor.ssl_expiry_alert_days,
 });
 
 const submit = () => {
@@ -204,6 +209,47 @@ function isIntervalLocked(minutes: number): boolean {
                                     Ricevi un alert quando la risposta supera questa soglia. Lascia vuoto per disabilitare.
                                 </p>
                                 <InputError class="mt-2" :message="form.errors.response_time_threshold_ms" />
+                            </div>
+
+                            <!-- SSL monitoring -->
+                            <div class="space-y-3">
+                                <div class="flex items-center gap-3">
+                                    <button
+                                        type="button"
+                                        role="switch"
+                                        :aria-checked="form.ssl_check_enabled"
+                                        :disabled="!sslCheckAvailable"
+                                        @click="sslCheckAvailable && (form.ssl_check_enabled = !form.ssl_check_enabled)"
+                                        class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                        :class="[form.ssl_check_enabled ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700', !sslCheckAvailable ? 'cursor-not-allowed opacity-50' : '']"
+                                    >
+                                        <span
+                                            class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
+                                            :class="form.ssl_check_enabled ? 'translate-x-6' : 'translate-x-1'"
+                                        />
+                                    </button>
+                                    <InputLabel value="Monitoraggio SSL" class="!mb-0 cursor-pointer" @click="sslCheckAvailable && (form.ssl_check_enabled = !form.ssl_check_enabled)" />
+                                    <ProBadge v-if="!sslCheckAvailable" />
+                                </div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">
+                                    Controlla la scadenza del certificato SSL ogni giorno e invia un alert prima che scada.
+                                </p>
+
+                                <div v-if="form.ssl_check_enabled">
+                                    <InputLabel for="ssl_expiry_alert_days" value="Giorni di preavviso scadenza" />
+                                    <div class="relative mt-1">
+                                        <input
+                                            id="ssl_expiry_alert_days"
+                                            type="number"
+                                            min="1"
+                                            max="90"
+                                            v-model.number="form.ssl_expiry_alert_days"
+                                            class="block w-full rounded-md border-gray-300 pr-14 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                                        />
+                                        <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-sm text-gray-400">giorni</span>
+                                    </div>
+                                    <InputError class="mt-2" :message="form.errors.ssl_expiry_alert_days" />
+                                </div>
                             </div>
 
                             <!-- Actions -->

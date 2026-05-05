@@ -19,7 +19,7 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [MonitorController::class, 'index'])->name('dashboard');
-    Route::redirect('/monitors', '/dashboard')->name('monitors.index');
+    Route::get('/monitors', fn () => to_route('dashboard'))->name('monitors.index');
     Route::get('/monitors/create', [MonitorController::class, 'create'])->name('monitors.create');
     Route::post('/monitors', [MonitorController::class, 'store'])
         ->middleware('check.plan.limits:monitors')

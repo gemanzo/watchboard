@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Support\Facades\Cache;
 
 class Monitor extends Model
@@ -25,6 +26,8 @@ class Monitor extends Model
         'confirmation_threshold',
         'consecutive_failures',
         'response_time_threshold_ms',
+        'ssl_check_enabled',
+        'ssl_expiry_alert_days',
     ];
 
     protected function casts(): array
@@ -35,6 +38,8 @@ class Monitor extends Model
             'confirmation_threshold'     => 'integer',
             'consecutive_failures'       => 'integer',
             'response_time_threshold_ms' => 'integer',
+            'ssl_check_enabled'          => 'boolean',
+            'ssl_expiry_alert_days'      => 'integer',
         ];
     }
 
@@ -56,6 +61,16 @@ class Monitor extends Model
     public function latestCheckResult(): HasOne
     {
         return $this->hasOne(CheckResult::class)->latestOfMany('checked_at');
+    }
+
+    public function sslChecks(): HasMany
+    {
+        return $this->hasMany(SslCheck::class);
+    }
+
+    public function latestSslCheck(): HasOne
+    {
+        return $this->hasOne(SslCheck::class)->latestOfMany('checked_at');
     }
 
     public function uptimePercentage(string $range): ?float

@@ -12,3 +12,8 @@ Schedule::command('monitors:dispatch-checks')
     ->everyMinute()
     ->withoutOverlapping()
     ->runInBackground();
+
+Schedule::command('monitors:dispatch-ssl-checks')
+    ->dailyAt('03:00')
+    ->withoutOverlapping()
+    ->runInBackground();
