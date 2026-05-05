@@ -17,11 +17,12 @@ const props = defineProps<{
 const isPro = props.maxThreshold > 1;
 
 const form = useForm({
-    name:                   '',
-    url:                    '',
-    method:                 'GET',
-    interval_minutes:       props.availableIntervals[0],
-    confirmation_threshold: 1,
+    name:                        '',
+    url:                         '',
+    method:                      'GET',
+    interval_minutes:            props.availableIntervals[0],
+    confirmation_threshold:      1,
+    response_time_threshold_ms:  null as number | null,
 });
 
 const submit = () => {
@@ -137,6 +138,29 @@ function isIntervalLocked(minutes: number): boolean {
                                     Quanti check falliti consecutivi prima di ricevere un alert.
                                 </p>
                                 <InputError class="mt-2" :message="form.errors.confirmation_threshold" />
+                            </div>
+
+                            <!-- Response time threshold -->
+                            <div>
+                                <InputLabel for="response_time_threshold_ms" value="Soglia response time (opzionale)" />
+                                <div class="relative mt-1">
+                                    <TextInput
+                                        id="response_time_threshold_ms"
+                                        type="number"
+                                        min="100"
+                                        step="100"
+                                        class="block w-full pr-12"
+                                        v-model.number="form.response_time_threshold_ms"
+                                        placeholder="Es. 2000"
+                                    />
+                                    <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-sm text-gray-400">
+                                        ms
+                                    </span>
+                                </div>
+                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                    Ricevi un alert quando la risposta supera questa soglia. Lascia vuoto per disabilitare.
+                                </p>
+                                <InputError class="mt-2" :message="form.errors.response_time_threshold_ms" />
                             </div>
 
                             <!-- Actions -->

@@ -52,7 +52,8 @@ class MonitorController extends Controller
             'url'                    => ['required', 'url', 'max:2048'],
             'method'                 => ['required', 'in:GET,HEAD'],
             'interval_minutes'       => ['required', 'integer', 'min:' . $minimumInterval],
-            'confirmation_threshold' => ['nullable', 'integer', 'min:1', 'max:' . $maxThreshold],
+            'confirmation_threshold'     => ['nullable', 'integer', 'min:1', 'max:' . $maxThreshold],
+            'response_time_threshold_ms' => ['nullable', 'integer', 'min:100'],
         ]);
 
         $monitor = $request->user()->monitors()->create(
@@ -96,7 +97,8 @@ class MonitorController extends Controller
             'url'                    => ['required', 'url', 'max:2048'],
             'method'                 => ['required', 'in:GET,HEAD'],
             'interval_minutes'       => ['required', 'integer', 'min:' . $minimumInterval],
-            'confirmation_threshold' => ['nullable', 'integer', 'min:1', 'max:' . $maxThreshold],
+            'confirmation_threshold'     => ['nullable', 'integer', 'min:1', 'max:' . $maxThreshold],
+            'response_time_threshold_ms' => ['nullable', 'integer', 'min:100'],
         ]);
 
         $monitor->update($validated);

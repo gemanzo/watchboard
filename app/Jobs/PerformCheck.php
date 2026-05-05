@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Events\CheckCompleted;
+use App\Events\MonitorSlowResponse;
 use App\Events\MonitorStatusChanged;
 use App\Models\CheckResult;
 use App\Models\Monitor;
@@ -77,6 +78,7 @@ class PerformCheck implements ShouldQueue, ShouldBeUnique
         ]);
 
         $this->dispatchStatusChangedIfNeeded($oldStatus, $newStatus, $checkResult);
+        $this->dispatchSlowResponseIfNeeded($checkResult);
 
         CheckCompleted::dispatch($this->monitor, $checkResult);
     }
@@ -133,6 +135,28 @@ class PerformCheck implements ShouldQueue, ShouldBeUnique
             $checkResult,
             $downtimeSeconds,
         );
+    }
+
+    /**
+     * Emit MonitorSlowResponse when a successful check exceeds the configured
+     * response-time threshold. Skipped entirely when threshold is null (opt-in).
+     * Failed checks are excluded because MonitorStatusChanged already handles them.
+     */
+    private function dispatchSlowResponseIfNeeded(CheckResult $checkResult): void
+    {
+        $threshold = $this->monitor->response_time_threshold_ms;
+
+        if ($threshold === null) {
+            return;
+        }
+
+        if (! $checkResult->is_successful) {
+            return;
+        }
+
+        if ($checkResult->response_time_ms > $threshold) {
+            MonitorSlowResponse::dispatch($this->monitor, $checkResult, $threshold);
+        }
     }
 
     /**
