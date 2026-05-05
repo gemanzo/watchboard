@@ -43,17 +43,20 @@ class MonitorController extends Controller
     {
         Gate::authorize('create', Monitor::class);
 
-        $minimumInterval = (int) $request->user()->planConfig()['min_interval_minutes'];
-
-        $maxThreshold = (int) $request->user()->planConfig()['max_confirmation_threshold'];
+        $plan         = $request->user()->planConfig();
+        $minInterval  = (int) $plan['min_interval_minutes'];
+        $maxThreshold = (int) $plan['max_confirmation_threshold'];
+        $responseTimeAlertsAllowed = (bool) $plan['response_time_alerts'];
 
         $validated = $request->validate([
-            'name'                   => ['nullable', 'string', 'max:255'],
-            'url'                    => ['required', 'url', 'max:2048'],
-            'method'                 => ['required', 'in:GET,HEAD'],
-            'interval_minutes'       => ['required', 'integer', 'min:' . $minimumInterval],
+            'name'                       => ['nullable', 'string', 'max:255'],
+            'url'                        => ['required', 'url', 'max:2048'],
+            'method'                     => ['required', 'in:GET,HEAD'],
+            'interval_minutes'           => ['required', 'integer', 'min:' . $minInterval],
             'confirmation_threshold'     => ['nullable', 'integer', 'min:1', 'max:' . $maxThreshold],
-            'response_time_threshold_ms' => ['nullable', 'integer', 'min:100'],
+            'response_time_threshold_ms' => $responseTimeAlertsAllowed
+                ? ['nullable', 'integer', 'min:100']
+                : ['prohibited'],
         ]);
 
         $monitor = $request->user()->monitors()->create(
@@ -88,17 +91,20 @@ class MonitorController extends Controller
     {
         Gate::authorize('update', $monitor);
 
-        $minimumInterval = (int) $request->user()->planConfig()['min_interval_minutes'];
-
-        $maxThreshold = (int) $request->user()->planConfig()['max_confirmation_threshold'];
+        $plan         = $request->user()->planConfig();
+        $minInterval  = (int) $plan['min_interval_minutes'];
+        $maxThreshold = (int) $plan['max_confirmation_threshold'];
+        $responseTimeAlertsAllowed = (bool) $plan['response_time_alerts'];
 
         $validated = $request->validate([
-            'name'                   => ['nullable', 'string', 'max:255'],
-            'url'                    => ['required', 'url', 'max:2048'],
-            'method'                 => ['required', 'in:GET,HEAD'],
-            'interval_minutes'       => ['required', 'integer', 'min:' . $minimumInterval],
+            'name'                       => ['nullable', 'string', 'max:255'],
+            'url'                        => ['required', 'url', 'max:2048'],
+            'method'                     => ['required', 'in:GET,HEAD'],
+            'interval_minutes'           => ['required', 'integer', 'min:' . $minInterval],
             'confirmation_threshold'     => ['nullable', 'integer', 'min:1', 'max:' . $maxThreshold],
-            'response_time_threshold_ms' => ['nullable', 'integer', 'min:100'],
+            'response_time_threshold_ms' => $responseTimeAlertsAllowed
+                ? ['nullable', 'integer', 'min:100']
+                : ['prohibited'],
         ]);
 
         $monitor->update($validated);

@@ -29,6 +29,7 @@ const props = defineProps<{
     monitor: Monitor;
     availableIntervals: number[];
     maxThreshold: number;
+    responseTimeAlertsEnabled: boolean;
 }>();
 
 const isPro = props.maxThreshold > 1;
@@ -178,7 +179,10 @@ function isIntervalLocked(minutes: number): boolean {
 
                             <!-- Response time threshold -->
                             <div>
-                                <InputLabel for="response_time_threshold_ms" value="Soglia response time (opzionale)" />
+                                <div class="flex items-center">
+                                    <InputLabel for="response_time_threshold_ms" value="Soglia response time (opzionale)" />
+                                    <ProBadge v-if="!responseTimeAlertsEnabled" />
+                                </div>
                                 <div class="relative mt-1">
                                     <TextInput
                                         id="response_time_threshold_ms"
@@ -186,7 +190,9 @@ function isIntervalLocked(minutes: number): boolean {
                                         min="100"
                                         step="100"
                                         class="block w-full pr-12"
+                                        :class="{ 'cursor-not-allowed opacity-50': !responseTimeAlertsEnabled }"
                                         v-model.number="form.response_time_threshold_ms"
+                                        :disabled="!responseTimeAlertsEnabled"
                                         placeholder="Es. 2000"
                                     />
                                     <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-sm text-gray-400">
