@@ -15,6 +15,7 @@ class CheckResult extends Model
         'status_code',
         'response_time_ms',
         'is_successful',
+        'keyword_matched',
         'checked_at',
     ];
 
@@ -22,6 +23,7 @@ class CheckResult extends Model
     {
         return [
             'is_successful' => 'boolean',
+            'keyword_matched' => 'boolean',
             'checked_at'    => 'datetime',
         ];
     }

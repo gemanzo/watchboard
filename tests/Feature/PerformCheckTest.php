@@ -117,6 +117,72 @@ test('saves null status_code and marks monitor down on timeout', function () {
     expect($monitor->refresh()->current_status)->toBe('down');
 });
 
+test('marks check as failed when contains keyword is missing on 200 response', function () {
+    Http::fake(['*' => Http::response('All systems operational', 200)]);
+
+    $monitor = monitorFor();
+    $monitor->update([
+        'keyword_check' => 'Error',
+        'keyword_check_type' => 'contains',
+    ]);
+
+    (new PerformCheck($monitor->fresh()))->handle();
+
+    $result = CheckResult::where('monitor_id', $monitor->id)->sole();
+    expect($result->status_code)->toBe(200)
+        ->and($result->keyword_matched)->toBeFalse()
+        ->and($result->is_successful)->toBeFalse();
+
+    expect($monitor->refresh()->current_status)->toBe('down');
+});
+
+test('marks check as successful when not_contains keyword is respected on 200 response', function () {
+    Http::fake(['*' => Http::response('All systems operational', 200)]);
+
+    $monitor = monitorFor();
+    $monitor->update([
+        'keyword_check' => 'Fatal error',
+        'keyword_check_type' => 'not_contains',
+    ]);
+
+    (new PerformCheck($monitor->fresh()))->handle();
+
+    $result = CheckResult::where('monitor_id', $monitor->id)->sole();
+    expect($result->status_code)->toBe(200)
+        ->and($result->keyword_matched)->toBeTrue()
+        ->and($result->is_successful)->toBeTrue();
+
+    expect($monitor->refresh()->current_status)->toBe('up');
+});
+
+test('does not run keyword check on timeout', function () {
+    Http::fake(['*' => fn() => throw new ConnectionException('cURL error 28: Operation timed out')]);
+
+    $monitor = monitorFor();
+    $monitor->update([
+        'keyword_check' => 'OK',
+        'keyword_check_type' => 'contains',
+    ]);
+
+    (new PerformCheck($monitor->fresh()))->handle();
+
+    $result = CheckResult::where('monitor_id', $monitor->id)->sole();
+    expect($result->status_code)->toBeNull()
+        ->and($result->keyword_matched)->toBeNull()
+        ->and($result->is_successful)->toBeFalse();
+});
+
+test('keeps default behavior when keyword check is not configured', function () {
+    Http::fake(['*' => Http::response('Any body content', 200)]);
+
+    $monitor = monitorFor();
+    (new PerformCheck($monitor))->handle();
+
+    $result = CheckResult::where('monitor_id', $monitor->id)->sole();
+    expect($result->keyword_matched)->toBeNull()
+        ->and($result->is_successful)->toBeTrue();
+});
+
 // ─── Job configuration ────────────────────────────────────────────────────────
 
 test('job has 3 tries', function () {

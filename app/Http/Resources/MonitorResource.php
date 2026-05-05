@@ -22,6 +22,8 @@ class MonitorResource extends JsonResource
                 'confirmation_threshold'     => $this->confirmation_threshold,
                 'consecutive_failures'       => $this->consecutive_failures,
                 'response_time_threshold_ms' => $this->response_time_threshold_ms,
+                'keyword_check'              => $this->keyword_check,
+                'keyword_check_type'         => $this->keyword_check_type,
                 'last_checked_at'        => $this->last_checked_at?->toIso8601String(),
                 'created_at'             => $this->created_at->toIso8601String(),
                 'updated_at'             => $this->updated_at->toIso8601String(),

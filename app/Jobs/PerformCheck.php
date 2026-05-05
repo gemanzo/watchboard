@@ -43,6 +43,8 @@ class PerformCheck implements ShouldQueue, ShouldBeUnique
         $statusCode = null;
         $isSuccessful = false;
         $responseTimeMs = 0;
+        $keywordMatched = null;
+        $responseBody = null;
 
         try {
             $response = Http::timeout(10)->{strtolower($this->monitor->method)}($this->monitor->url);
@@ -50,6 +52,7 @@ class PerformCheck implements ShouldQueue, ShouldBeUnique
             $responseTimeMs = (int) round((hrtime(true) - $startNs) / 1_000_000);
             $statusCode     = $response->status();
             $isSuccessful   = $response->successful(); // 2xx
+            $responseBody   = $response->body();
 
         } catch (ConnectionException) {
             // DNS failure, refused connection, or timeout
@@ -60,6 +63,12 @@ class PerformCheck implements ShouldQueue, ShouldBeUnique
             $responseTimeMs = (int) round((hrtime(true) - $startNs) / 1_000_000);
             $statusCode     = $e->response->status();
             $isSuccessful   = false;
+            $responseBody   = $e->response->body();
+        }
+
+        if ($this->shouldRunKeywordCheck($responseBody)) {
+            $keywordMatched = $this->doesKeywordMatch($responseBody);
+            $isSuccessful   = $isSuccessful && $keywordMatched;
         }
 
         [$newStatus, $newConsecutiveFailures] = $this->resolveStatusAndCounter($isSuccessful, $oldStatus);
@@ -68,6 +77,7 @@ class PerformCheck implements ShouldQueue, ShouldBeUnique
             'status_code'      => $statusCode,
             'response_time_ms' => $responseTimeMs,
             'is_successful'    => $isSuccessful,
+            'keyword_matched'  => $keywordMatched,
             'checked_at'       => $startedAt,
         ]);
 
@@ -81,6 +91,22 @@ class PerformCheck implements ShouldQueue, ShouldBeUnique
         $this->dispatchSlowResponseIfNeeded($checkResult);
 
         CheckCompleted::dispatch($this->monitor, $checkResult);
+    }
+
+    private function shouldRunKeywordCheck(?string $responseBody): bool
+    {
+        return $responseBody !== null
+            && $this->monitor->keyword_check !== null
+            && $this->monitor->keyword_check_type !== null;
+    }
+
+    private function doesKeywordMatch(string $responseBody): bool
+    {
+        return match ($this->monitor->keyword_check_type) {
+            'contains' => str_contains($responseBody, $this->monitor->keyword_check),
+            'not_contains' => ! str_contains($responseBody, $this->monitor->keyword_check),
+            default => true,
+        };
     }
 
     /**

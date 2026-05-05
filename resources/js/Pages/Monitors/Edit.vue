@@ -23,6 +23,8 @@ interface Monitor {
     is_paused: boolean;
     confirmation_threshold: number;
     response_time_threshold_ms: number | null;
+    keyword_check: string | null;
+    keyword_check_type: 'contains' | 'not_contains' | null;
     ssl_check_enabled: boolean;
     ssl_expiry_alert_days: number;
 }
@@ -33,6 +35,7 @@ const props = defineProps<{
     maxThreshold: number;
     responseTimeAlertsEnabled: boolean;
     sslCheckAvailable: boolean;
+    keywordCheckAvailable: boolean;
 }>();
 
 const isPro = props.maxThreshold > 1;
@@ -44,6 +47,8 @@ const form = useForm({
     interval_minutes:           props.monitor.interval_minutes,
     confirmation_threshold:     props.monitor.confirmation_threshold,
     response_time_threshold_ms: props.monitor.response_time_threshold_ms,
+    keyword_check:              props.monitor.keyword_check ?? '',
+    keyword_check_type:         (props.monitor.keyword_check_type ?? 'contains') as 'contains' | 'not_contains',
     ssl_check_enabled:          props.monitor.ssl_check_enabled,
     ssl_expiry_alert_days:      props.monitor.ssl_expiry_alert_days,
 });
@@ -209,6 +214,45 @@ function isIntervalLocked(minutes: number): boolean {
                                     Ricevi un alert quando la risposta supera questa soglia. Lascia vuoto per disabilitare.
                                 </p>
                                 <InputError class="mt-2" :message="form.errors.response_time_threshold_ms" />
+                            </div>
+
+                            <!-- Keyword check -->
+                            <div class="space-y-3">
+                                <div class="flex items-center gap-2">
+                                    <InputLabel for="keyword_check" value="Keyword check (opzionale)" />
+                                    <ProBadge v-if="!keywordCheckAvailable" />
+                                </div>
+                                <TextInput
+                                    id="keyword_check"
+                                    type="text"
+                                    class="mt-1 block w-full"
+                                    v-model="form.keyword_check"
+                                    autocomplete="off"
+                                    placeholder="Es. Application Error"
+                                    :disabled="!keywordCheckAvailable && form.keyword_check.trim() === ''"
+                                    :class="{ 'cursor-not-allowed opacity-50': !keywordCheckAvailable && form.keyword_check.trim() === '' }"
+                                />
+
+                                <div v-if="form.keyword_check.trim() !== ''">
+                                    <InputLabel for="keyword_check_type" value="Regola keyword" />
+                                    <select
+                                        id="keyword_check_type"
+                                        v-model="form.keyword_check_type"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                                    >
+                                        <option value="contains">La risposta deve contenere la keyword</option>
+                                        <option value="not_contains">La risposta NON deve contenere la keyword</option>
+                                    </select>
+                                    <InputError class="mt-2" :message="form.errors.keyword_check_type" />
+                                </div>
+
+                                <p class="text-sm text-gray-500 dark:text-gray-400">
+                                    Se valorizzato, un check HTTP 2xx viene considerato fallito quando la regola keyword non viene rispettata. Lascia vuoto per disabilitare.
+                                </p>
+                                <p v-if="!keywordCheckAvailable && form.keyword_check.trim() === ''" class="text-sm text-amber-600 dark:text-amber-400">
+                                    Hai raggiunto il limite di monitor con keyword check del tuo piano.
+                                </p>
+                                <InputError class="mt-2" :message="form.errors.keyword_check" />
                             </div>
 
                             <!-- SSL monitoring -->

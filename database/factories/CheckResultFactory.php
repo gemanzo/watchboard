@@ -91,6 +91,7 @@ class CheckResultFactory extends Factory
             ]),
             'response_time_ms' => fake()->numberBetween(100, 1000),
             'is_successful'    => fake()->randomElement([true, false]),
+            'keyword_matched'  => fake()->optional()->randomElement([true, false]),
             'checked_at'       => fake()->dateTimeBetween('-1 week', 'now'),
         ];
     }

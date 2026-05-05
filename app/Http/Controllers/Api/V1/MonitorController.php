@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 
 /**
  * @tags Monitors
@@ -57,7 +58,11 @@ class MonitorController extends Controller
             'response_time_threshold_ms' => $responseTimeAlertsAllowed
                 ? ['nullable', 'integer', 'min:100']
                 : ['prohibited'],
+            'keyword_check'              => ['nullable', 'string', 'max:255', 'required_with:keyword_check_type'],
+            'keyword_check_type'         => ['nullable', 'in:contains,not_contains', 'required_with:keyword_check'],
         ]);
+
+        $this->validateKeywordLimitOnStore($request, $validated);
 
         $monitor = $request->user()->monitors()->create(
             $validated + ['current_status' => 'unknown']
@@ -105,7 +110,11 @@ class MonitorController extends Controller
             'response_time_threshold_ms' => $responseTimeAlertsAllowed
                 ? ['nullable', 'integer', 'min:100']
                 : ['prohibited'],
+            'keyword_check'              => ['nullable', 'string', 'max:255', 'required_with:keyword_check_type'],
+            'keyword_check_type'         => ['nullable', 'in:contains,not_contains', 'required_with:keyword_check'],
         ]);
+
+        $this->validateKeywordLimitOnUpdate($request, $monitor, $validated);
 
         $monitor->update($validated);
 
@@ -128,5 +137,48 @@ class MonitorController extends Controller
         $monitor->delete();
 
         return response()->json(null, 204);
+    }
+
+    private function validateKeywordLimitOnStore(Request $request, array $validated): void
+    {
+        if (empty($validated['keyword_check'])) {
+            return;
+        }
+
+        $maxKeyword = $request->user()->planConfig()['max_keyword_monitors'] ?? null;
+        if ($maxKeyword === null) {
+            return;
+        }
+
+        $usedKeyword = $request->user()->monitors()->whereNotNull('keyword_check')->count();
+        if ($usedKeyword >= $maxKeyword) {
+            throw ValidationException::withMessages([
+                'keyword_check' => 'Hai raggiunto il limite di monitor con keyword check per il tuo piano.',
+            ]);
+        }
+    }
+
+    private function validateKeywordLimitOnUpdate(Request $request, Monitor $monitor, array $validated): void
+    {
+        $isEnablingKeyword = ! empty($validated['keyword_check']) && empty($monitor->keyword_check);
+        if (! $isEnablingKeyword) {
+            return;
+        }
+
+        $maxKeyword = $request->user()->planConfig()['max_keyword_monitors'] ?? null;
+        if ($maxKeyword === null) {
+            return;
+        }
+
+        $usedKeyword = $request->user()->monitors()
+            ->whereNotNull('keyword_check')
+            ->where('id', '!=', $monitor->id)
+            ->count();
+
+        if ($usedKeyword >= $maxKeyword) {
+            throw ValidationException::withMessages([
+                'keyword_check' => 'Hai raggiunto il limite di monitor con keyword check per il tuo piano.',
+            ]);
+        }
     }
 }

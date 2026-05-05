@@ -45,7 +45,7 @@ test('check result has correct attributes shape', function () {
         ->assertOk()
         ->json('data.0.attributes');
 
-    expect($attrs)->toHaveKeys(['status_code', 'response_time_ms', 'is_successful', 'checked_at']);
+    expect($attrs)->toHaveKeys(['status_code', 'response_time_ms', 'is_successful', 'keyword_matched', 'checked_at']);
     expect($this->getJson("/api/v1/monitors/{$monitor->id}/checks")->json('data.0.type'))->toBe('check_result');
 });
 

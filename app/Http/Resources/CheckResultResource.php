@@ -16,6 +16,7 @@ class CheckResultResource extends JsonResource
                 'status_code'      => $this->status_code,
                 'response_time_ms' => $this->response_time_ms,
                 'is_successful'    => $this->is_successful,
+                'keyword_matched'  => $this->keyword_matched,
                 'checked_at'       => $this->checked_at->toIso8601String(),
             ],
         ];

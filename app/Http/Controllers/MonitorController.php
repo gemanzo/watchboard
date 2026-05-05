@@ -47,15 +47,19 @@ class MonitorController extends Controller
         $user = $request->user();
         $plan = $user->planConfig();
         $maxSsl = $plan['max_ssl_monitors'] ?? null;
+        $maxKeyword = $plan['max_keyword_monitors'] ?? null;
 
         $sslCheckAvailable = $maxSsl === null
             || $user->monitors()->where('ssl_check_enabled', true)->count() < $maxSsl;
+        $keywordCheckAvailable = $maxKeyword === null
+            || $user->monitors()->whereNotNull('keyword_check')->count() < $maxKeyword;
 
         return Inertia::render('Monitors/Create', [
             'availableIntervals'        => $plan['intervals'],
             'maxThreshold'              => (int) $plan['max_confirmation_threshold'],
             'responseTimeAlertsEnabled' => (bool) $plan['response_time_alerts'],
             'sslCheckAvailable'         => $sslCheckAvailable,
+            'keywordCheckAvailable'     => $keywordCheckAvailable,
         ]);
     }
 
@@ -121,10 +125,14 @@ class MonitorController extends Controller
         $user = $request->user();
         $plan = $user->planConfig();
         $maxSsl = $plan['max_ssl_monitors'] ?? null;
+        $maxKeyword = $plan['max_keyword_monitors'] ?? null;
 
         $sslCheckAvailable = $monitor->ssl_check_enabled
             || $maxSsl === null
             || $user->monitors()->where('ssl_check_enabled', true)->where('id', '!=', $monitor->id)->count() < $maxSsl;
+        $keywordCheckAvailable = filled($monitor->keyword_check)
+            || $maxKeyword === null
+            || $user->monitors()->whereNotNull('keyword_check')->where('id', '!=', $monitor->id)->count() < $maxKeyword;
 
         return Inertia::render('Monitors/Edit', [
             'monitor'            => [
@@ -137,6 +145,8 @@ class MonitorController extends Controller
                 'is_paused'              => $monitor->is_paused,
                 'confirmation_threshold'     => $monitor->confirmation_threshold,
                 'response_time_threshold_ms' => $monitor->response_time_threshold_ms,
+                'keyword_check'              => $monitor->keyword_check,
+                'keyword_check_type'         => $monitor->keyword_check_type,
                 'ssl_check_enabled'          => $monitor->ssl_check_enabled,
                 'ssl_expiry_alert_days'      => $monitor->ssl_expiry_alert_days,
             ],
@@ -144,6 +154,7 @@ class MonitorController extends Controller
             'maxThreshold'              => (int) $plan['max_confirmation_threshold'],
             'responseTimeAlertsEnabled' => (bool) $plan['response_time_alerts'],
             'sslCheckAvailable'         => $sslCheckAvailable,
+            'keywordCheckAvailable'     => $keywordCheckAvailable,
         ]);
     }
 
