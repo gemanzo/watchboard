@@ -35,7 +35,7 @@ test('sends notification to monitor owner when status goes down', function () {
     Notification::fake();
 
     $event = makeEvent('up', 'down');
-    (new SendDownNotification)->handle($event);
+    (new SendDownNotification(new \App\Services\NotificationThrottler()))->handle($event);
 
     Notification::assertSentTo($event->monitor->user, MonitorDownNotification::class);
 });
@@ -44,7 +44,7 @@ test('sends notification on first check when service is already down (unknown �
     Notification::fake();
 
     $event = makeEvent('unknown', 'down');
-    (new SendDownNotification)->handle($event);
+    (new SendDownNotification(new \App\Services\NotificationThrottler()))->handle($event);
 
     Notification::assertSentTo($event->monitor->user, MonitorDownNotification::class);
 });
@@ -55,7 +55,7 @@ test('does not send notification when monitor recovers (down → up)', function 
     Notification::fake();
 
     $event = makeEvent('down', 'up');
-    (new SendDownNotification)->handle($event);
+    (new SendDownNotification(new \App\Services\NotificationThrottler()))->handle($event);
 
     Notification::assertNothingSent();
 });
@@ -80,7 +80,7 @@ test('notification mail contains monitor name, url, status code and timestamp', 
     ]);
 
     $event = new MonitorStatusChanged($monitor, 'up', 'down', $checkResult);
-    (new SendDownNotification)->handle($event);
+    (new SendDownNotification(new \App\Services\NotificationThrottler()))->handle($event);
 
     Notification::assertSentTo(
         $monitor->user,
@@ -111,7 +111,7 @@ test('notification shows "Connection failed" when status code is null', function
     ]);
 
     $event = new MonitorStatusChanged($monitor, 'up', 'down', $checkResult);
-    (new SendDownNotification)->handle($event);
+    (new SendDownNotification(new \App\Services\NotificationThrottler()))->handle($event);
 
     Notification::assertSentTo(
         $monitor->user,
@@ -128,7 +128,7 @@ test('notification shows "Connection failed" when status code is null', function
 // ─── Queue ────────────────────────────────────────────────────────────────────
 
 test('listener is queued on the notifications queue', function () {
-    $listener = new SendDownNotification();
+    $listener = new SendDownNotification(new \App\Services\NotificationThrottler());
 
     expect($listener)->toBeInstanceOf(Illuminate\Contracts\Queue\ShouldQueue::class);
     expect($listener->queue)->toBe('notifications');

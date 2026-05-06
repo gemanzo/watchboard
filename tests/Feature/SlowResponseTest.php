@@ -99,13 +99,13 @@ test('listener sends MonitorSlowResponseNotification to monitor owner', function
     ]);
 
     $event = new MonitorSlowResponse($monitor, $result, 2000);
-    (new SendSlowResponseNotification())->handle($event);
+    (new SendSlowResponseNotification(new \App\Services\NotificationThrottler()))->handle($event);
 
     Notification::assertSentTo($user, MonitorSlowResponseNotification::class);
 });
 
 test('listener is queued on the notifications queue', function () {
-    expect((new SendSlowResponseNotification())->queue)->toBe('notifications');
+    expect((new SendSlowResponseNotification(new \App\Services\NotificationThrottler()))->queue)->toBe('notifications');
 });
 
 // ─── Notification content ─────────────────────────────────────────────────────

@@ -29,8 +29,11 @@ class MonitorFactory extends Factory
             'response_time_threshold_ms' => null,
             'keyword_check'              => null,
             'keyword_check_type'         => null,
-            'ssl_check_enabled'          => false,
-            'ssl_expiry_alert_days'      => 14,
+            'ssl_check_enabled'              => false,
+            'ssl_expiry_alert_days'          => 14,
+            'notification_cooldown_minutes'  => 15,
+            'last_notified_at'               => null,
+            'recovery_bypass_cooldown'       => true,
         ];
     }
 

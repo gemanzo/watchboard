@@ -32,6 +32,9 @@ class Monitor extends Model
         'keyword_check_type',
         'ssl_check_enabled',
         'ssl_expiry_alert_days',
+        'notification_cooldown_minutes',
+        'last_notified_at',
+        'recovery_bypass_cooldown',
     ];
 
     protected function casts(): array
@@ -46,8 +49,11 @@ class Monitor extends Model
             'response_time_threshold_ms' => 'integer',
             'keyword_check'              => 'string',
             'keyword_check_type'         => 'string',
-            'ssl_check_enabled'          => 'boolean',
-            'ssl_expiry_alert_days'      => 'integer',
+            'ssl_check_enabled'              => 'boolean',
+            'ssl_expiry_alert_days'          => 'integer',
+            'notification_cooldown_minutes'  => 'integer',
+            'last_notified_at'               => 'datetime',
+            'recovery_bypass_cooldown'       => 'boolean',
         ];
     }
 
