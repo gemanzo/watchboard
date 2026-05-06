@@ -46,6 +46,12 @@ const showingNavigationDropdown = ref(false);
                                     Status Pages
                                 </NavLink>
                                 <NavLink
+                                    :href="route('notification-channels.index')"
+                                    :active="route().current('notification-channels.*')"
+                                >
+                                    Canali
+                                </NavLink>
+                                <NavLink
                                     :href="route('api-tokens.index')"
                                     :active="route().current('api-tokens.*')"
                                 >

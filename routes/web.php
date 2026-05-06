@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ApiTokenController;
 use App\Http\Controllers\MonitorController;
+use App\Http\Controllers\NotificationChannelController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StatusPageController;
 use Illuminate\Foundation\Application;
@@ -30,6 +31,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/monitors/{monitor}', [MonitorController::class, 'update'])->name('monitors.update');
     Route::patch('/monitors/{monitor}/pause', [MonitorController::class, 'togglePause'])->name('monitors.toggle-pause');
     Route::delete('/monitors/{monitor}', [MonitorController::class, 'destroy'])->name('monitors.destroy');
+
+    // Notification Channels
+    Route::get('/notification-channels', [NotificationChannelController::class, 'index'])->name('notification-channels.index');
+    Route::get('/notification-channels/create', [NotificationChannelController::class, 'create'])->name('notification-channels.create');
+    Route::post('/notification-channels', [NotificationChannelController::class, 'store'])->name('notification-channels.store');
+    Route::get('/notification-channels/{notificationChannel}/edit', [NotificationChannelController::class, 'edit'])->name('notification-channels.edit');
+    Route::put('/notification-channels/{notificationChannel}', [NotificationChannelController::class, 'update'])->name('notification-channels.update');
+    Route::delete('/notification-channels/{notificationChannel}', [NotificationChannelController::class, 'destroy'])->name('notification-channels.destroy');
+    Route::post('/notification-channels/test', [NotificationChannelController::class, 'testInline'])->name('notification-channels.test-inline');
+    Route::post('/notification-channels/{notificationChannel}/test', [NotificationChannelController::class, 'test'])->name('notification-channels.test');
 
     // API Tokens
     Route::get('/api-tokens', [ApiTokenController::class, 'index'])->name('api-tokens.index');

@@ -42,6 +42,11 @@ class User extends Authenticatable
         return $this->hasMany(StatusPage::class);
     }
 
+    public function notificationChannels(): HasMany
+    {
+        return $this->hasMany(NotificationChannel::class);
+    }
+
     public function planConfig(): array
     {
         return config("plans.{$this->plan}");

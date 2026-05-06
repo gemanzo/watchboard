@@ -7,6 +7,8 @@ use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\SecurityScheme;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use App\Models\NotificationChannel;
+use App\Policies\NotificationChannelPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Vite;
@@ -40,5 +42,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Gate::define('viewApiDocs', fn ($user) => true);
+
+        Gate::policy(NotificationChannel::class, NotificationChannelPolicy::class);
     }
 }
