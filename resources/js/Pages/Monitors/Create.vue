@@ -15,6 +15,7 @@ const props = defineProps<{
     responseTimeAlertsEnabled: boolean;
     sslCheckAvailable: boolean;
     keywordCheckAvailable: boolean;
+    allowedCheckTypes: string[];
 }>();
 
 const isPro = props.maxThreshold > 1;
@@ -23,6 +24,8 @@ const form = useForm({
     name:                        '',
     url:                         '',
     method:                      'GET',
+    check_type:                  'http' as 'http' | 'tcp' | 'ping',
+    port:                        null as number | null,
     interval_minutes:            props.availableIntervals[0],
     confirmation_threshold:      1,
     response_time_threshold_ms:  null as number | null,
@@ -76,21 +79,41 @@ function isIntervalLocked(minutes: number): boolean {
 
                             <!-- URL -->
                             <div>
-                                <InputLabel for="url" value="URL" />
+                                <InputLabel for="url" :value="form.check_type === 'http' ? 'URL' : 'Host'" />
                                 <TextInput
                                     id="url"
-                                    type="url"
+                                    :type="form.check_type === 'http' ? 'url' : 'text'"
                                     class="mt-1 block w-full"
                                     v-model="form.url"
                                     required
                                     autofocus
-                                    placeholder="https://example.com"
+                                    :placeholder="form.check_type === 'http' ? 'https://example.com' : 'db.internal.local'"
                                 />
                                 <InputError class="mt-2" :message="form.errors.url" />
                             </div>
 
-                            <!-- Method -->
+                            <!-- Check type -->
                             <div>
+                                <div class="flex items-center gap-2">
+                                    <InputLabel for="check_type" value="Tipo check" />
+                                    <ProBadge v-if="!allowedCheckTypes.includes('tcp')" />
+                                </div>
+                                <select
+                                    id="check_type"
+                                    v-model="form.check_type"
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                                >
+                                    <option value="http">🌐 HTTP</option>
+                                    <option value="ping">📡 Ping</option>
+                                    <option value="tcp" :disabled="!allowedCheckTypes.includes('tcp')">
+                                        🔌 TCP{{ !allowedCheckTypes.includes('tcp') ? ' — Solo Piano Pro' : '' }}
+                                    </option>
+                                </select>
+                                <InputError class="mt-2" :message="form.errors.check_type" />
+                            </div>
+
+                            <!-- Method -->
+                            <div v-if="form.check_type === 'http'">
                                 <InputLabel for="method" value="Metodo HTTP" />
                                 <select
                                     id="method"
@@ -101,6 +124,22 @@ function isIntervalLocked(minutes: number): boolean {
                                     <option value="HEAD">HEAD</option>
                                 </select>
                                 <InputError class="mt-2" :message="form.errors.method" />
+                            </div>
+
+                            <!-- TCP port -->
+                            <div v-if="form.check_type === 'tcp'">
+                                <InputLabel for="port" value="Porta TCP" />
+                                <input
+                                    id="port"
+                                    type="number"
+                                    min="1"
+                                    max="65535"
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                                    :value="form.port ?? ''"
+                                    @input="form.port = ($event.target as HTMLInputElement).value === '' ? null : Number(($event.target as HTMLInputElement).value)"
+                                    placeholder="3306"
+                                />
+                                <InputError class="mt-2" :message="form.errors.port" />
                             </div>
 
                             <!-- Interval -->
@@ -177,7 +216,7 @@ function isIntervalLocked(minutes: number): boolean {
                             </div>
 
                             <!-- Keyword check -->
-                            <div class="space-y-3">
+                            <div v-if="form.check_type === 'http'" class="space-y-3">
                                 <div class="flex items-center gap-2">
                                     <InputLabel for="keyword_check" value="Keyword check (opzionale)" />
                                     <ProBadge v-if="!keywordCheckAvailable" />

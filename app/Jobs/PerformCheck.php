@@ -7,12 +7,10 @@ use App\Events\MonitorSlowResponse;
 use App\Events\MonitorStatusChanged;
 use App\Models\CheckResult;
 use App\Models\Monitor;
+use App\Services\Checks\CheckStrategyResolver;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Http\Client\RequestException;
-use Illuminate\Support\Facades\Http;
 
 class PerformCheck implements ShouldQueue, ShouldBeUnique
 {
@@ -39,43 +37,21 @@ class PerformCheck implements ShouldQueue, ShouldBeUnique
     {
         $oldStatus  = $this->monitor->current_status;
         $startedAt  = now();
-        $startNs    = hrtime(true);
-        $statusCode = null;
-        $isSuccessful = false;
-        $responseTimeMs = 0;
         $keywordMatched = null;
-        $responseBody = null;
+        $strategy = app(CheckStrategyResolver::class)->resolve($this->monitor);
+        $executionResult = $strategy->run($this->monitor);
+        $isSuccessful = $executionResult->isSuccessful;
 
-        try {
-            $response = Http::timeout(10)->{strtolower($this->monitor->method)}($this->monitor->url);
-
-            $responseTimeMs = (int) round((hrtime(true) - $startNs) / 1_000_000);
-            $statusCode     = $response->status();
-            $isSuccessful   = $response->successful(); // 2xx
-            $responseBody   = $response->body();
-
-        } catch (ConnectionException) {
-            // DNS failure, refused connection, or timeout
-            $responseTimeMs = (int) round((hrtime(true) - $startNs) / 1_000_000);
-
-        } catch (RequestException $e) {
-            // HTTP error response received (4xx / 5xx thrown by throw())
-            $responseTimeMs = (int) round((hrtime(true) - $startNs) / 1_000_000);
-            $statusCode     = $e->response->status();
-            $isSuccessful   = false;
-            $responseBody   = $e->response->body();
-        }
-
-        if ($this->shouldRunKeywordCheck($responseBody)) {
-            $keywordMatched = $this->doesKeywordMatch($responseBody);
+        if ($this->shouldRunKeywordCheck($executionResult->responseBody)) {
+            $keywordMatched = $this->doesKeywordMatch($executionResult->responseBody);
             $isSuccessful   = $isSuccessful && $keywordMatched;
         }
 
         [$newStatus, $newConsecutiveFailures] = $this->resolveStatusAndCounter($isSuccessful, $oldStatus);
 
         $checkResult = $this->monitor->checkResults()->create([
-            'status_code'      => $statusCode,
-            'response_time_ms' => $responseTimeMs,
+            'status_code'      => $executionResult->statusCode,
+            'response_time_ms' => $executionResult->responseTimeMs,
             'is_successful'    => $isSuccessful,
             'keyword_matched'  => $keywordMatched,
             'checked_at'       => $startedAt,

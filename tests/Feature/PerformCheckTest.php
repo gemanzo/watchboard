@@ -4,6 +4,9 @@ use App\Jobs\PerformCheck;
 use App\Models\CheckResult;
 use App\Models\Monitor;
 use App\Models\User;
+use App\Services\Checks\CheckExecutionResult;
+use App\Services\Checks\CheckStrategy;
+use App\Services\Checks\CheckStrategyResolver;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 
@@ -215,4 +218,68 @@ test('always updates last_checked_at even on failure', function () {
     (new PerformCheck($monitor))->handle();
 
     expect($monitor->refresh()->last_checked_at)->not->toBeNull();
+});
+
+test('uses tcp strategy result when monitor check_type is tcp', function () {
+    $monitor = monitorFor();
+    $monitor->update([
+        'check_type' => 'tcp',
+        'port' => 3306,
+    ]);
+
+    $strategy = new class implements CheckStrategy
+    {
+        public function run(Monitor $monitor): CheckExecutionResult
+        {
+            return new CheckExecutionResult(
+                statusCode: null,
+                responseTimeMs: 42,
+                isSuccessful: true,
+                responseBody: null,
+            );
+        }
+    };
+
+    $resolver = \Mockery::mock(CheckStrategyResolver::class);
+    $resolver->shouldReceive('resolve')->once()->andReturn($strategy);
+    app()->instance(CheckStrategyResolver::class, $resolver);
+
+    (new PerformCheck($monitor->fresh()))->handle();
+
+    $result = CheckResult::where('monitor_id', $monitor->id)->sole();
+    expect($result->status_code)->toBeNull()
+        ->and($result->response_time_ms)->toBe(42)
+        ->and($result->is_successful)->toBeTrue();
+});
+
+test('uses ping strategy result when monitor check_type is ping', function () {
+    $monitor = monitorFor();
+    $monitor->update([
+        'check_type' => 'ping',
+        'port' => null,
+    ]);
+
+    $strategy = new class implements CheckStrategy
+    {
+        public function run(Monitor $monitor): CheckExecutionResult
+        {
+            return new CheckExecutionResult(
+                statusCode: null,
+                responseTimeMs: 10,
+                isSuccessful: false,
+                responseBody: null,
+            );
+        }
+    };
+
+    $resolver = \Mockery::mock(CheckStrategyResolver::class);
+    $resolver->shouldReceive('resolve')->once()->andReturn($strategy);
+    app()->instance(CheckStrategyResolver::class, $resolver);
+
+    (new PerformCheck($monitor->fresh()))->handle();
+
+    $result = CheckResult::where('monitor_id', $monitor->id)->sole();
+    expect($result->status_code)->toBeNull()
+        ->and($result->response_time_ms)->toBe(10)
+        ->and($result->is_successful)->toBeFalse();
 });

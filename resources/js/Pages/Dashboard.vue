@@ -8,7 +8,9 @@ interface Monitor {
     id: number;
     name: string | null;
     url: string;
-    method: string;
+    method: string | null;
+    check_type: 'http' | 'tcp' | 'ping';
+    port: number | null;
     interval_minutes: number;
     current_status: 'unknown' | 'up' | 'down';
     is_paused: boolean;
@@ -124,6 +126,14 @@ function getStatus(monitor: Monitor) {
         };
     }
     return statusConfig[monitor.current_status] ?? statusConfig.unknown;
+}
+
+function typeIcon(type: Monitor['check_type']): string {
+    return {
+        http: '🌐',
+        tcp: '🔌',
+        ping: '📡',
+    }[type] ?? '🌐';
 }
 
 // ─── Pause toggle ─────────────────────────────────────────────────────────────
@@ -275,10 +285,10 @@ function togglePause(event: Event, monitor: Monitor) {
                                     <!-- Nome / URL -->
                                     <td class="px-6 py-4 max-w-xs">
                                         <div class="font-medium text-gray-900 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 truncate">
-                                            {{ monitor.name ?? '—' }}
+                                            {{ typeIcon(monitor.check_type) }} {{ monitor.name ?? '—' }}
                                         </div>
                                         <div class="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">
-                                            {{ monitor.url }}
+                                            {{ monitor.url }}<span v-if="monitor.check_type === 'tcp' && monitor.port">:{{ monitor.port }}</span>
                                         </div>
                                     </td>
 

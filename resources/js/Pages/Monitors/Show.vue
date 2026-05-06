@@ -24,7 +24,9 @@ interface Monitor {
     id: number;
     name: string | null;
     url: string;
-    method: string;
+    method: string | null;
+    check_type: 'http' | 'tcp' | 'ping';
+    port: number | null;
     interval_minutes: number;
     current_status: 'unknown' | 'up' | 'down';
     is_paused: boolean;
@@ -253,8 +255,16 @@ watch(metrics, (pts) => {
                             <dd class="mt-1 truncate max-w-[220px] text-gray-700 dark:text-gray-200">{{ monitor.url }}</dd>
                         </div>
                         <div>
+                            <dt class="text-xs font-medium uppercase tracking-wide text-gray-400">Tipo</dt>
+                            <dd class="mt-1 text-gray-700 dark:text-gray-200 capitalize">{{ monitor.check_type }}</dd>
+                        </div>
+                        <div v-if="monitor.check_type === 'http'">
                             <dt class="text-xs font-medium uppercase tracking-wide text-gray-400">Metodo</dt>
                             <dd class="mt-1 text-gray-700 dark:text-gray-200">{{ monitor.method }}</dd>
+                        </div>
+                        <div v-if="monitor.check_type === 'tcp'">
+                            <dt class="text-xs font-medium uppercase tracking-wide text-gray-400">Porta</dt>
+                            <dd class="mt-1 text-gray-700 dark:text-gray-200">{{ monitor.port ?? '—' }}</dd>
                         </div>
                         <div>
                             <dt class="text-xs font-medium uppercase tracking-wide text-gray-400">Intervallo</dt>

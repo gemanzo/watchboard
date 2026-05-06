@@ -28,6 +28,8 @@ class MonitorController extends Controller
                 'name'                  => $monitor->name,
                 'url'                   => $monitor->url,
                 'method'                => $monitor->method,
+                'check_type'            => $monitor->check_type,
+                'port'                  => $monitor->port,
                 'interval_minutes'      => $monitor->interval_minutes,
                 'current_status'        => $monitor->current_status,
                 'is_paused'             => $monitor->is_paused,
@@ -60,13 +62,16 @@ class MonitorController extends Controller
             'responseTimeAlertsEnabled' => (bool) $plan['response_time_alerts'],
             'sslCheckAvailable'         => $sslCheckAvailable,
             'keywordCheckAvailable'     => $keywordCheckAvailable,
+            'allowedCheckTypes'         => $plan['allowed_check_types'] ?? ['http', 'ping', 'tcp'],
         ]);
     }
 
     public function store(StoreMonitorRequest $request): RedirectResponse
     {
+        $payload = $this->normalizeCheckPayload($request->validated());
+
         $request->user()->monitors()->create(
-            $request->validated() + ['current_status' => 'unknown']
+            $payload + ['current_status' => 'unknown']
         );
 
         return redirect()->route('dashboard')
@@ -98,6 +103,8 @@ class MonitorController extends Controller
                 'name'             => $monitor->name,
                 'url'              => $monitor->url,
                 'method'           => $monitor->method,
+                'check_type'       => $monitor->check_type,
+                'port'             => $monitor->port,
                 'interval_minutes' => $monitor->interval_minutes,
                 'current_status'   => $monitor->current_status,
                 'is_paused'        => $monitor->is_paused,
@@ -140,6 +147,8 @@ class MonitorController extends Controller
                 'name'                   => $monitor->name,
                 'url'                    => $monitor->url,
                 'method'                 => $monitor->method,
+                'check_type'             => $monitor->check_type,
+                'port'                   => $monitor->port,
                 'interval_minutes'       => $monitor->interval_minutes,
                 'current_status'         => $monitor->current_status,
                 'is_paused'              => $monitor->is_paused,
@@ -155,12 +164,13 @@ class MonitorController extends Controller
             'responseTimeAlertsEnabled' => (bool) $plan['response_time_alerts'],
             'sslCheckAvailable'         => $sslCheckAvailable,
             'keywordCheckAvailable'     => $keywordCheckAvailable,
+            'allowedCheckTypes'         => $plan['allowed_check_types'] ?? ['http', 'ping', 'tcp'],
         ]);
     }
 
     public function update(UpdateMonitorRequest $request, Monitor $monitor): RedirectResponse
     {
-        $monitor->update($request->validated());
+        $monitor->update($this->normalizeCheckPayload($request->validated()));
 
         return redirect()->route('dashboard')
             ->with('message', 'Monitor aggiornato con successo.');
@@ -224,5 +234,20 @@ class MonitorController extends Controller
             ->values();
 
         return response()->json(['data' => $data]);
+    }
+
+    private function normalizeCheckPayload(array $payload): array
+    {
+        $payload['check_type'] = $payload['check_type'] ?? 'http';
+
+        if ($payload['check_type'] !== 'http') {
+            $payload['method'] = 'GET';
+        }
+
+        if ($payload['check_type'] !== 'tcp') {
+            $payload['port'] = null;
+        }
+
+        return $payload;
     }
 }

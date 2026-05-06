@@ -15,6 +15,28 @@ class StoreMonitorRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
+            $checkType = $this->input('check_type', 'http');
+            $allowedCheckTypes = $this->user()->planConfig()['allowed_check_types'] ?? ['http', 'ping', 'tcp'];
+
+            if (! in_array($checkType, $allowedCheckTypes, true)) {
+                $validator->errors()->add('check_type', 'Il tipo di check selezionato non è disponibile per il tuo piano.');
+                return;
+            }
+
+            if ($checkType === 'http') {
+                if (! filter_var($this->input('url'), FILTER_VALIDATE_URL)) {
+                    $validator->errors()->add('url', 'The url field must be a valid URL.');
+                }
+
+                if (! in_array($this->input('method'), ['GET', 'HEAD'], true)) {
+                    $validator->errors()->add('method', 'The method field is required for HTTP checks.');
+                }
+            }
+
+            if ($checkType === 'tcp' && ! is_numeric($this->input('port'))) {
+                $validator->errors()->add('port', 'The port field is required for TCP checks.');
+            }
+
             if ($this->boolean('ssl_check_enabled')) {
                 $maxSsl = $this->user()->planConfig()['max_ssl_monitors'] ?? null;
 
@@ -28,6 +50,11 @@ class StoreMonitorRequest extends FormRequest
             }
 
             if ($this->filled('keyword_check')) {
+                if ($checkType !== 'http') {
+                    $validator->errors()->add('keyword_check', 'Il keyword check è disponibile solo per monitor HTTP.');
+                    return;
+                }
+
                 $maxKeyword = $this->user()->planConfig()['max_keyword_monitors'] ?? null;
 
                 if ($maxKeyword === null) {
@@ -52,8 +79,10 @@ class StoreMonitorRequest extends FormRequest
 
         return [
             'name'                       => ['nullable', 'string', 'max:255'],
-            'url'                        => ['required', 'url', 'max:2048'],
-            'method'                     => ['required', 'in:GET,HEAD'],
+            'url'                        => ['required', 'string', 'max:2048'],
+            'check_type'                 => ['nullable', 'in:http,tcp,ping'],
+            'method'                     => ['nullable', 'in:GET,HEAD'],
+            'port'                       => ['nullable', 'integer', 'min:1', 'max:65535'],
             'interval_minutes'           => ['required', 'integer', 'min:'.$minInterval],
             'confirmation_threshold'     => ['nullable', 'integer', 'min:1', 'max:'.$maxThreshold],
             'response_time_threshold_ms' => $responseTimeAlertsAllowed
