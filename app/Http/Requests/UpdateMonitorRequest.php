@@ -100,8 +100,14 @@ class UpdateMonitorRequest extends FormRequest
                 : ['prohibited'],
             'keyword_check'              => ['nullable', 'string', 'max:255', 'required_with:keyword_check_type'],
             'keyword_check_type'         => ['nullable', 'in:contains,not_contains', 'required_with:keyword_check'],
-            'ssl_check_enabled'     => ['boolean'],
-            'ssl_expiry_alert_days' => ['integer', 'min:1', 'max:90'],
+            'ssl_check_enabled'              => ['boolean'],
+            'ssl_expiry_alert_days'          => ['integer', 'min:1', 'max:90'],
+            'notification_cooldown_minutes'  => $plan['configurable_notifications']
+                ? ['integer', 'in:5,10,15,30,60']
+                : ['prohibited'],
+            'recovery_bypass_cooldown'       => $plan['configurable_notifications']
+                ? ['boolean']
+                : ['prohibited'],
         ];
     }
 }

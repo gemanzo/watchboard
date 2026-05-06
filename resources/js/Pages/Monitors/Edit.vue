@@ -29,6 +29,8 @@ interface Monitor {
     keyword_check_type: 'contains' | 'not_contains' | null;
     ssl_check_enabled: boolean;
     ssl_expiry_alert_days: number;
+    notification_cooldown_minutes: number;
+    recovery_bypass_cooldown: boolean;
 }
 
 const props = defineProps<{
@@ -39,6 +41,8 @@ const props = defineProps<{
     sslCheckAvailable: boolean;
     keywordCheckAvailable: boolean;
     allowedCheckTypes: string[];
+    cooldownOptions: number[];
+    notificationsConfigurable: boolean;
 }>();
 
 const isPro = props.maxThreshold > 1;
@@ -54,8 +58,10 @@ const form = useForm({
     response_time_threshold_ms: props.monitor.response_time_threshold_ms,
     keyword_check:              props.monitor.keyword_check ?? '',
     keyword_check_type:         (props.monitor.keyword_check_type ?? 'contains') as 'contains' | 'not_contains',
-    ssl_check_enabled:          props.monitor.ssl_check_enabled,
-    ssl_expiry_alert_days:      props.monitor.ssl_expiry_alert_days,
+    ssl_check_enabled:              props.monitor.ssl_check_enabled,
+    ssl_expiry_alert_days:          props.monitor.ssl_expiry_alert_days,
+    notification_cooldown_minutes:  props.notificationsConfigurable ? props.monitor.notification_cooldown_minutes : null as number | null,
+    recovery_bypass_cooldown:       props.notificationsConfigurable ? props.monitor.recovery_bypass_cooldown : null as boolean | null,
 });
 
 const submit = () => {
@@ -338,6 +344,58 @@ function isIntervalLocked(minutes: number): boolean {
                                     </div>
                                     <InputError class="mt-2" :message="form.errors.ssl_expiry_alert_days" />
                                 </div>
+                            </div>
+
+                            <!-- Notification cooldown -->
+                            <div class="space-y-3">
+                                <div class="flex items-center gap-2">
+                                    <InputLabel value="Cooldown notifiche" />
+                                    <ProBadge v-if="!notificationsConfigurable" />
+                                </div>
+
+                                <!-- Pro: fully configurable -->
+                                <template v-if="notificationsConfigurable">
+                                    <select
+                                        v-model="form.notification_cooldown_minutes"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                                    >
+                                        <option v-for="opt in cooldownOptions" :key="opt" :value="opt">
+                                            {{ opt }} minuti
+                                        </option>
+                                    </select>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                                        Attendi almeno questo tempo prima di inviare una nuova notifica per lo stesso monitor.
+                                    </p>
+                                    <InputError class="mt-2" :message="form.errors.notification_cooldown_minutes" />
+
+                                    <div class="flex items-center gap-3">
+                                        <button
+                                            type="button"
+                                            role="switch"
+                                            :aria-checked="form.recovery_bypass_cooldown ?? false"
+                                            @click="form.recovery_bypass_cooldown = !form.recovery_bypass_cooldown"
+                                            class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                            :class="form.recovery_bypass_cooldown ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700'"
+                                        >
+                                            <span
+                                                class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
+                                                :class="form.recovery_bypass_cooldown ? 'translate-x-6' : 'translate-x-1'"
+                                            />
+                                        </button>
+                                        <InputLabel value="Recovery bypassa il cooldown" class="!mb-0 cursor-pointer" @click="form.recovery_bypass_cooldown = !form.recovery_bypass_cooldown" />
+                                    </div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                                        Se abilitato, la notifica di ripristino viene sempre inviata anche durante il cooldown.
+                                    </p>
+                                </template>
+
+                                <!-- Free: fixed values, locked -->
+                                <template v-else>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                                        Cooldown fisso a <strong>15 minuti</strong>. La notifica di ripristino bypassa sempre il cooldown.
+                                        Passa al piano Pro per personalizzare questi valori.
+                                    </p>
+                                </template>
                             </div>
 
                             <!-- Actions -->

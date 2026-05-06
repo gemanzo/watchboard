@@ -56,6 +56,8 @@ class MonitorController extends Controller
         $keywordCheckAvailable = $maxKeyword === null
             || $user->monitors()->whereNotNull('keyword_check')->count() < $maxKeyword;
 
+        $notificationsConfigurable = (bool) ($plan['configurable_notifications'] ?? false);
+
         return Inertia::render('Monitors/Create', [
             'availableIntervals'        => $plan['intervals'],
             'maxThreshold'              => (int) $plan['max_confirmation_threshold'],
@@ -63,6 +65,8 @@ class MonitorController extends Controller
             'sslCheckAvailable'         => $sslCheckAvailable,
             'keywordCheckAvailable'     => $keywordCheckAvailable,
             'allowedCheckTypes'         => $plan['allowed_check_types'] ?? ['http', 'ping', 'tcp'],
+            'notificationsConfigurable' => $notificationsConfigurable,
+            'cooldownOptions'           => $notificationsConfigurable ? [5, 10, 15, 30, 60] : [],
         ]);
     }
 
@@ -141,6 +145,8 @@ class MonitorController extends Controller
             || $maxKeyword === null
             || $user->monitors()->whereNotNull('keyword_check')->where('id', '!=', $monitor->id)->count() < $maxKeyword;
 
+        $notificationsConfigurable = (bool) ($plan['configurable_notifications'] ?? false);
+
         return Inertia::render('Monitors/Edit', [
             'monitor'            => [
                 'id'                     => $monitor->id,
@@ -156,8 +162,10 @@ class MonitorController extends Controller
                 'response_time_threshold_ms' => $monitor->response_time_threshold_ms,
                 'keyword_check'              => $monitor->keyword_check,
                 'keyword_check_type'         => $monitor->keyword_check_type,
-                'ssl_check_enabled'          => $monitor->ssl_check_enabled,
-                'ssl_expiry_alert_days'      => $monitor->ssl_expiry_alert_days,
+                'ssl_check_enabled'              => $monitor->ssl_check_enabled,
+                'ssl_expiry_alert_days'          => $monitor->ssl_expiry_alert_days,
+                'notification_cooldown_minutes'  => $monitor->notification_cooldown_minutes,
+                'recovery_bypass_cooldown'       => $monitor->recovery_bypass_cooldown,
             ],
             'availableIntervals'        => $plan['intervals'],
             'maxThreshold'              => (int) $plan['max_confirmation_threshold'],
@@ -165,6 +173,8 @@ class MonitorController extends Controller
             'sslCheckAvailable'         => $sslCheckAvailable,
             'keywordCheckAvailable'     => $keywordCheckAvailable,
             'allowedCheckTypes'         => $plan['allowed_check_types'] ?? ['http', 'ping', 'tcp'],
+            'notificationsConfigurable' => $notificationsConfigurable,
+            'cooldownOptions'           => $notificationsConfigurable ? [5, 10, 15, 30, 60] : [],
         ]);
     }
 

@@ -34,7 +34,7 @@ test('sends recovery notification to monitor owner when monitor comes back up', 
     Notification::fake();
 
     $event = recoveryEvent();
-    (new SendRecoveryNotification)->handle($event);
+    (new SendRecoveryNotification(new \App\Services\NotificationThrottler()))->handle($event);
 
     Notification::assertSentTo($event->monitor->user, MonitorRecoveredNotification::class);
 });
@@ -54,7 +54,7 @@ test('does not send notification when monitor goes down (up → down)', function
     ]);
 
     $event = new MonitorStatusChanged($monitor, 'up', 'down', $checkResult);
-    (new SendRecoveryNotification)->handle($event);
+    (new SendRecoveryNotification(new \App\Services\NotificationThrottler()))->handle($event);
 
     Notification::assertNothingSent();
 });
@@ -72,7 +72,7 @@ test('does not send notification on unknown → up', function () {
     ]);
 
     $event = new MonitorStatusChanged($monitor, 'unknown', 'up', $checkResult);
-    (new SendRecoveryNotification)->handle($event);
+    (new SendRecoveryNotification(new \App\Services\NotificationThrottler()))->handle($event);
 
     Notification::assertNothingSent();
 });
@@ -83,7 +83,7 @@ test('notification mail contains monitor name, url, recovery timestamp and downt
     Notification::fake();
 
     $event = recoveryEvent(downtimeSeconds: 3750); // 1h 2m 30s
-    (new SendRecoveryNotification)->handle($event);
+    (new SendRecoveryNotification(new \App\Services\NotificationThrottler()))->handle($event);
 
     Notification::assertSentTo(
         $event->monitor->user,
@@ -104,7 +104,7 @@ test('notification omits downtime line when downtimeSeconds is null', function (
     Notification::fake();
 
     $event = recoveryEvent(downtimeSeconds: null);
-    (new SendRecoveryNotification)->handle($event);
+    (new SendRecoveryNotification(new \App\Services\NotificationThrottler()))->handle($event);
 
     Notification::assertSentTo(
         $event->monitor->user,
@@ -156,7 +156,7 @@ test('formats downtime in hours and minutes when over an hour', function () {
 // ─── Queue ────────────────────────────────────────────────────────────────────
 
 test('listener is queued on the notifications queue', function () {
-    $listener = new SendRecoveryNotification();
+    $listener = new SendRecoveryNotification(new \App\Services\NotificationThrottler());
 
     expect($listener)->toBeInstanceOf(ShouldQueue::class);
     expect($listener->queue)->toBe('notifications');
