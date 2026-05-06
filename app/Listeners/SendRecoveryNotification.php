@@ -4,6 +4,7 @@ namespace App\Listeners;
 
 use App\Events\MonitorStatusChanged;
 use App\Notifications\MonitorRecoveredNotification;
+use App\Services\NotificationDispatcher;
 use App\Services\NotificationThrottler;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
@@ -14,7 +15,14 @@ class SendRecoveryNotification implements ShouldQueue
 
     public string $queue = 'notifications';
 
-    public function __construct(private readonly NotificationThrottler $throttler) {}
+    private readonly NotificationDispatcher $dispatcher;
+
+    public function __construct(
+        private readonly NotificationThrottler $throttler,
+        ?NotificationDispatcher $dispatcher = null,
+    ) {
+        $this->dispatcher = $dispatcher ?? new NotificationDispatcher();
+    }
 
     public function handle(MonitorStatusChanged $event): void
     {
@@ -26,11 +34,19 @@ class SendRecoveryNotification implements ShouldQueue
             return;
         }
 
+        // Primary email (user's account address)
         $event->monitor->user->notify(new MonitorRecoveredNotification(
             $event->monitor,
             $event->checkResult,
             $event->downtimeSeconds,
         ));
+
+        // Additional channels
+        $this->dispatcher->dispatch($event->monitor->user, 'monitor.recovered', [
+            'monitor'          => $event->monitor,
+            'check_result'     => $event->checkResult,
+            'downtime_seconds' => $event->downtimeSeconds,
+        ]);
 
         $this->throttler->recordNotificationSent($event->monitor);
     }

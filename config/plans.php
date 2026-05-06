@@ -12,6 +12,7 @@ return [
         'max_keyword_monitors'       => 1,
         'allowed_check_types'        => ['http', 'ping'],
         'configurable_notifications' => false,
+        'notification_channels'      => false,
     ],
     'pro' => [
         'max_monitors'               => null,
@@ -24,5 +25,6 @@ return [
         'max_keyword_monitors'       => null,
         'allowed_check_types'        => ['http', 'ping', 'tcp'],
         'configurable_notifications' => true,
+        'notification_channels'      => true,
     ],
 ];
