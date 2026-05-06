@@ -372,7 +372,7 @@ function isIntervalLocked(minutes: number): boolean {
                                         <button
                                             type="button"
                                             role="switch"
-                                            :aria-checked="form.recovery_bypass_cooldown"
+                                            :aria-checked="form.recovery_bypass_cooldown ?? false"
                                             @click="form.recovery_bypass_cooldown = !form.recovery_bypass_cooldown"
                                             class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                                             :class="form.recovery_bypass_cooldown ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700'"
