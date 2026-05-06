@@ -51,8 +51,10 @@ class MonitorController extends Controller
 
         $validated = $request->validate([
             'name'                       => ['nullable', 'string', 'max:255'],
-            'url'                        => ['required', 'url', 'max:2048'],
-            'method'                     => ['required', 'in:GET,HEAD'],
+            'url'                        => ['required', 'string', 'max:2048'],
+            'check_type'                 => ['nullable', 'in:http,tcp,ping'],
+            'method'                     => ['nullable', 'in:GET,HEAD'],
+            'port'                       => ['nullable', 'integer', 'min:1', 'max:65535'],
             'interval_minutes'           => ['required', 'integer', 'min:' . $minInterval],
             'confirmation_threshold'     => ['nullable', 'integer', 'min:1', 'max:' . $maxThreshold],
             'response_time_threshold_ms' => $responseTimeAlertsAllowed
@@ -62,7 +64,10 @@ class MonitorController extends Controller
             'keyword_check_type'         => ['nullable', 'in:contains,not_contains', 'required_with:keyword_check'],
         ]);
 
+        $this->validateCheckTypePayload($validated);
+        $this->validateCheckTypePlanLimit($request, $validated);
         $this->validateKeywordLimitOnStore($request, $validated);
+        $validated = $this->normalizeCheckPayload($validated);
 
         $monitor = $request->user()->monitors()->create(
             $validated + ['current_status' => 'unknown']
@@ -103,8 +108,10 @@ class MonitorController extends Controller
 
         $validated = $request->validate([
             'name'                       => ['nullable', 'string', 'max:255'],
-            'url'                        => ['required', 'url', 'max:2048'],
-            'method'                     => ['required', 'in:GET,HEAD'],
+            'url'                        => ['required', 'string', 'max:2048'],
+            'check_type'                 => ['nullable', 'in:http,tcp,ping'],
+            'method'                     => ['nullable', 'in:GET,HEAD'],
+            'port'                       => ['nullable', 'integer', 'min:1', 'max:65535'],
             'interval_minutes'           => ['required', 'integer', 'min:' . $minInterval],
             'confirmation_threshold'     => ['nullable', 'integer', 'min:1', 'max:' . $maxThreshold],
             'response_time_threshold_ms' => $responseTimeAlertsAllowed
@@ -114,7 +121,10 @@ class MonitorController extends Controller
             'keyword_check_type'         => ['nullable', 'in:contains,not_contains', 'required_with:keyword_check'],
         ]);
 
+        $this->validateCheckTypePayload($validated);
+        $this->validateCheckTypePlanLimitOnUpdate($request, $monitor, $validated);
         $this->validateKeywordLimitOnUpdate($request, $monitor, $validated);
+        $validated = $this->normalizeCheckPayload($validated);
 
         $monitor->update($validated);
 
@@ -145,6 +155,12 @@ class MonitorController extends Controller
             return;
         }
 
+        if (($validated['check_type'] ?? 'http') !== 'http') {
+            throw ValidationException::withMessages([
+                'keyword_check' => 'Il keyword check è disponibile solo per monitor HTTP.',
+            ]);
+        }
+
         $maxKeyword = $request->user()->planConfig()['max_keyword_monitors'] ?? null;
         if ($maxKeyword === null) {
             return;
@@ -165,6 +181,12 @@ class MonitorController extends Controller
             return;
         }
 
+        if (($validated['check_type'] ?? 'http') !== 'http') {
+            throw ValidationException::withMessages([
+                'keyword_check' => 'Il keyword check è disponibile solo per monitor HTTP.',
+            ]);
+        }
+
         $maxKeyword = $request->user()->planConfig()['max_keyword_monitors'] ?? null;
         if ($maxKeyword === null) {
             return;
@@ -180,5 +202,68 @@ class MonitorController extends Controller
                 'keyword_check' => 'Hai raggiunto il limite di monitor con keyword check per il tuo piano.',
             ]);
         }
+    }
+
+    private function validateCheckTypePlanLimit(Request $request, array $validated): void
+    {
+        $checkType = $validated['check_type'] ?? 'http';
+        $allowed   = $request->user()->planConfig()['allowed_check_types'] ?? ['http', 'ping', 'tcp'];
+
+        if (! in_array($checkType, $allowed, true)) {
+            throw ValidationException::withMessages([
+                'check_type' => 'Il tipo di check selezionato non è disponibile per il tuo piano.',
+            ]);
+        }
+    }
+
+    private function validateCheckTypePlanLimitOnUpdate(Request $request, Monitor $monitor, array $validated): void
+    {
+        $checkType = $validated['check_type'] ?? 'http';
+
+        if ($checkType === $monitor->check_type) {
+            return;
+        }
+
+        $allowed = $request->user()->planConfig()['allowed_check_types'] ?? ['http', 'ping', 'tcp'];
+
+        if (! in_array($checkType, $allowed, true)) {
+            throw ValidationException::withMessages([
+                'check_type' => 'Il tipo di check selezionato non è disponibile per il tuo piano.',
+            ]);
+        }
+    }
+
+    private function validateCheckTypePayload(array $validated): void
+    {
+        $checkType = $validated['check_type'] ?? 'http';
+
+        if ($checkType === 'http') {
+            if (! filter_var($validated['url'], FILTER_VALIDATE_URL)) {
+                throw ValidationException::withMessages(['url' => 'The url field must be a valid URL.']);
+            }
+
+            if (! in_array($validated['method'] ?? null, ['GET', 'HEAD'], true)) {
+                throw ValidationException::withMessages(['method' => 'The method field is required for HTTP checks.']);
+            }
+        }
+
+        if ($checkType === 'tcp' && empty($validated['port'])) {
+            throw ValidationException::withMessages(['port' => 'The port field is required for TCP checks.']);
+        }
+    }
+
+    private function normalizeCheckPayload(array $payload): array
+    {
+        $payload['check_type'] = $payload['check_type'] ?? 'http';
+
+        if ($payload['check_type'] !== 'http') {
+            $payload['method'] = 'GET';
+        }
+
+        if ($payload['check_type'] !== 'tcp') {
+            $payload['port'] = null;
+        }
+
+        return $payload;
     }
 }

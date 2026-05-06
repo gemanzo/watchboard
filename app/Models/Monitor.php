@@ -19,6 +19,8 @@ class Monitor extends Model
         'name',
         'url',
         'method',
+        'check_type',
+        'port',
         'interval_minutes',
         'current_status',
         'is_paused',
@@ -37,6 +39,8 @@ class Monitor extends Model
         return [
             'is_paused'              => 'boolean',
             'last_checked_at'        => 'datetime',
+            'check_type'             => 'string',
+            'port'                   => 'integer',
             'confirmation_threshold'     => 'integer',
             'consecutive_failures'       => 'integer',
             'response_time_threshold_ms' => 'integer',

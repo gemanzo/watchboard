@@ -18,6 +18,8 @@ class MonitorFactory extends Factory
             'name'             => fake()->optional()->words(2, true),
             'url'              => fake()->url(),
             'method'           => fake()->randomElement(['GET', 'HEAD']),
+            'check_type'       => 'http',
+            'port'             => null,
             'interval_minutes' => fake()->randomElement([1, 2, 3, 5]),
             'current_status'   => fake()->randomElement(['unknown', 'up', 'down']),
             'is_paused'              => false,

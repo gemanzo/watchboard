@@ -42,6 +42,8 @@ test('index response has correct attributes shape', function () {
         'name',
         'url',
         'method',
+        'check_type',
+        'port',
         'interval_minutes',
         'current_status',
         'is_paused',
@@ -100,6 +102,32 @@ test('store returns 422 when url is not a valid url', function () {
     $this->postJson('/api/v1/monitors', ['url' => 'not-a-url', 'method' => 'GET', 'interval_minutes' => 5])
         ->assertStatus(422)
         ->assertJsonPath('errors.url.0', fn ($v) => str_contains($v, 'url'));
+});
+
+test('store allows tcp monitor with required port', function () {
+    Sanctum::actingAs(User::factory()->create(['plan' => 'pro']));
+
+    $this->postJson('/api/v1/monitors', [
+        'url' => 'db.internal.local',
+        'check_type' => 'tcp',
+        'port' => 5432,
+        'interval_minutes' => 5,
+    ])
+        ->assertStatus(201)
+        ->assertJsonPath('data.attributes.check_type', 'tcp')
+        ->assertJsonPath('data.attributes.port', 5432);
+});
+
+test('store returns 422 for tcp monitor without port', function () {
+    Sanctum::actingAs(User::factory()->create());
+
+    $this->postJson('/api/v1/monitors', [
+        'url' => 'db.internal.local',
+        'check_type' => 'tcp',
+        'interval_minutes' => 5,
+    ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['port']);
 });
 
 test('store returns 403 when plan limit is reached', function () {

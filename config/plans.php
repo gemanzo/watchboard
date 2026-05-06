@@ -10,6 +10,7 @@ return [
         'response_time_alerts'       => false,
         'max_ssl_monitors'           => 1,
         'max_keyword_monitors'       => 1,
+        'allowed_check_types'        => ['http', 'ping'],
     ],
     'pro' => [
         'max_monitors'               => null,
@@ -20,5 +21,6 @@ return [
         'response_time_alerts'       => true,
         'max_ssl_monitors'           => null,
         'max_keyword_monitors'       => null,
+        'allowed_check_types'        => ['http', 'ping', 'tcp'],
     ],
 ];

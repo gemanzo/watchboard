@@ -57,6 +57,25 @@ test('user can create a monitor with valid data', function () {
         ->and($user->monitors->first()->current_status)->toBe('unknown');
 });
 
+test('pro user can create a tcp monitor with host and port', function () {
+    $user = proUser();
+
+    $this->actingAs($user)
+        ->post(route('monitors.store'), [
+            'name' => 'DB Primary',
+            'url' => 'db.internal.local',
+            'check_type' => 'tcp',
+            'port' => 3306,
+            'interval_minutes' => 5,
+        ])
+        ->assertRedirect(route('dashboard'));
+
+    $monitor = $user->monitors()->latest()->first();
+    expect($monitor->check_type)->toBe('tcp')
+        ->and($monitor->port)->toBe(3306)
+        ->and($monitor->method)->toBe('GET');
+});
+
 test('store fails with invalid url', function () {
     $this->actingAs(freeUser())
         ->post(route('monitors.store'), [
